@@ -1,0 +1,217 @@
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  role      String   @default("TEAM")
+  avatar    String
+  title     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  auditLogs AuditLog[]
+}
+
+model Client {
+  id           String   @id @default(cuid())
+  name         String
+  businessName String
+  website      String
+  industry     String
+  country      String
+  province     String
+  city         String
+  contactName  String
+  contactEmail String
+  contactPhone String?  @default("")
+  description  String
+  brandTone    String
+  logoUrl      String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  campaigns    Campaign[]
+}
+
+model Campaign {
+  id                   String         @id @default(cuid())
+  name                 String
+  clientId             String
+  client               Client         @relation(fields: [clientId], references: [id])
+  objective            String
+  platform             String         @default("Google Ads")
+  location             String
+  dailyBudget          Float
+  totalBudget          Float
+  currency             String         @default("CAD")
+  status               String         @default("DRAFT")
+  startDate            String
+  endDate              String
+  googleAdsCampaignId  String?
+  approvedBy           String?
+  approvedAt           String?
+  metricsSpend         Float          @default(0)
+  metricsImpressions   Int            @default(0)
+  metricsClicks        Int            @default(0)
+  metricsCtr           Float          @default(0)
+  metricsCpc           Float          @default(0)
+  metricsConversions   Int            @default(0)
+  metricsCpa           Float          @default(0)
+  metricsConvRate      Float          @default(0)
+  aiInsight            String?
+  createdAt            DateTime       @default(now())
+  updatedAt            DateTime       @updatedAt
+
+  brief                CampaignBrief?
+  proposal             CampaignProposal?
+  creatives            Creative[]
+  agentRuns            AgentRun[]
+  auditLogs            AuditLog[]
+}
+
+model Creative {
+  id           String    @id @default(cuid())
+  campaignId   String?
+  campaign     Campaign? @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  title        String
+  type         String    @default("IMAGE") // IMAGE, VIDEO, COPY
+  provider     String    @default("Gemini")
+  model        String    @default("gemini-3.6-flash")
+  prompt       String
+  aspectRatio  String    @default("1:1") // 1:1, 4:5, 16:9, 9:16
+  imageUrl     String    // SVG Data URI or File URL or Image URL
+  thumbnailUrl String?
+  status       String    @default("FINAL") // DRAFT, FINAL, ARCHIVED
+  metadataJson String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}
+
+model CampaignBrief {
+  id                 String   @id @default(cuid())
+  campaignId         String   @unique
+  campaign           Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  productService     String
+  serviceDescription String
+  websiteUrl         String
+  landingPageUrl     String
+  offer              String
+  cta                String
+  targetCountry      String
+  targetProvince     String
+  targetCity         String
+  targetLanguage     String
+  aiRequirements     String   // Store as JSON string array
+  createdAt          DateTime @default(now())
+}
+
+model CampaignProposal {
+  id                   String   @id @default(cuid())
+  campaignId           String   @unique
+  campaign             Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  clientId             String
+  clientName           String
+  objective            String
+  location             String
+  recommendedBudgetCAD Float
+  platform             String
+  audienceJson         String   // Structured JSON
+  strategyJson         String   // Structured JSON
+  copyJson             String   // Structured JSON
+  creativesJson        String   // Structured JSON
+  qualityCheckJson     String   // Structured JSON
+  createdAt            DateTime @default(now())
+}
+
+model AgentRun {
+  id          String   @id @default(cuid())
+  campaignId  String
+  campaign    Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  agentName   String
+  status      String   // PENDING, RUNNING, COMPLETED, FAILED
+  outputJson  String?
+  error       String?
+  startedAt   DateTime @default(now())
+  completedAt DateTime?
+}
+
+model AuditLog {
+  id           String   @id @default(cuid())
+  timestamp    DateTime @default(now())
+  userId       String?
+  user         User?    @relation(fields: [userId], references: [id])
+  userName     String?
+  agentName    String?
+  action       String
+  campaignId   String?
+  campaign     Campaign? @relation(fields: [campaignId], references: [id])
+  campaignName String?
+  apiOperation String?
+  status       String   // SUCCESS, WARNING, ERROR
+  details      String
+}
+
+model AISetting {
+  id                 String  @id @default("default")
+  strategyProvider   String  @default("OpenAI")
+  researchProvider   String  @default("Gemini")
+  copyProvider       String  @default("OpenAI")
+  imageProvider      String  @default("OpenAI")
+  videoProvider      String  @default("Gemini")
+  validationProvider String  @default("Gemini")
+  demoMode           Boolean @default(true)
+}
+
+model ConnectionStatus {
+  id                   String  @id @default("default")
+  openAiConnected      Boolean @default(true)
+  geminiConnected      Boolean @default(true)
+  googleAdsConnected   Boolean @default(true)
+  googleAdsCustomerId  String? @default("849-204-9102")
+  googleAdsAccountName String? @default("G1 Sphere Canada Ads")
+}
+
+model Invitation {
+  id            String   @id @default(cuid())
+  email         String
+  name          String?
+  role          String   @default("TEAM_MEMBER")
+  passcode      String   @unique
+  tokenHash     String?
+  invitedBy     String?
+  invitedByName String?
+  status        String   @default("PENDING") // PENDING, ACCEPTED, REVOKED, EXPIRED
+  message       String?
+  expiresAt     DateTime
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model Task {
+  id              String   @id @default(cuid())
+  title           String
+  description     String
+  priority        String   @default("MEDIUM") // URGENT, HIGH, MEDIUM, LOW
+  status          String   @default("TODO")   // TODO, IN_PROGRESS, COMPLETED, CANCELLED
+  assignedToId    String
+  assignedToName  String
+  assignedToEmail String
+  assignedById    String
+  assignedByName  String
+  clientId        String?
+  clientName      String?
+  campaignId      String?
+  campaignName    String?
+  dueDate         String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
