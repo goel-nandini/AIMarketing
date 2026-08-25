@@ -23,80 +23,14 @@ import {
   Check
 } from 'lucide-react';
 
-const DEFAULT_TASKS: Task[] = [
-  {
-    id: 'tsk_01',
-    title: 'Design & Launch 3 Eye Care Visual Ads for Jeevansphere',
-    description: 'Create 3 high-converting creative visuals and marketing copy for Jeevansphere clinic targeting eye care consultations. Please review brand tone and launch approval.',
-    priority: 'URGENT',
-    status: 'TODO',
-    assignedToId: 'usr_harshit',
-    assignedToName: 'Harshit Singh',
-    assignedToEmail: 'harshitsingh19622@gmail.com',
-    assignedById: 'usr_aman',
-    assignedByName: 'Aman Sir',
-    clientId: 'cli_jeevansphere_default',
-    clientName: 'Jeevansphere',
-    dueDate: '2026-08-30',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: 'tsk_02',
-    title: 'Setup & Verify Live Deployment Link & Google Ads Tracking',
-    description: 'Link the GitHub code repository and live deployment URL for Jeevansphere in the Client Business Hub.',
-    priority: 'HIGH',
-    status: 'TODO',
-    assignedToId: 'usr_harshit',
-    assignedToName: 'Harshit Singh',
-    assignedToEmail: 'harshitsingh19622@gmail.com',
-    assignedById: 'usr_aman',
-    assignedByName: 'Aman Sir',
-    clientId: 'cli_jeevansphere_default',
-    clientName: 'Jeevansphere',
-    dueDate: '2026-09-02',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-];
-
-const DEFAULT_TEAM_USERS: UserProfile[] = [
-  {
-    uid: 'usr_harshit',
-    name: 'Harshit Singh',
-    email: 'harshitsingh19622@gmail.com',
-    username: 'harshitsingh19622',
-    role: 'ADMIN',
-    status: 'ACTIVE',
-    title: 'Lead Architect / Admin',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=harshitsingh19622@gmail.com',
-    emailVerified: true,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    uid: 'usr_aman',
-    name: 'Aman Sir',
-    email: 'aman@codekap.com',
-    username: 'aman',
-    role: 'ADMIN',
-    status: 'ACTIVE',
-    title: 'Super Admin / Founder & CEO',
-    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
-    emailVerified: true,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-];
-
 export default function TasksPage() {
   const { profile, role, user: authUser } = useAuth();
   const isSuperOrManager = role === 'ADMIN' || role === 'MANAGER' || profile?.email === 'aman@codekap.com';
 
-  const [tasks, setTasks] = useState<Task[]>(DEFAULT_TASKS);
-  const [teamUsers, setTeamUsers] = useState<UserProfile[]>(DEFAULT_TEAM_USERS);
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [teamUsers, setTeamUsers] = useState<UserProfile[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
 
@@ -133,25 +67,19 @@ export default function TasksPage() {
 
       if (taskRes.ok) {
         const data = await taskRes.json();
-        if (Array.isArray(data) && data.length > 0) {
+        if (Array.isArray(data)) {
           setTasks(data);
         }
       }
       if (userRes.ok) {
         const uData = await userRes.json();
-        if (Array.isArray(uData) && uData.length > 0) {
-          const merged = [...uData];
-          for (const defU of DEFAULT_TEAM_USERS) {
-            if (!merged.some((m) => m.email.toLowerCase() === defU.email.toLowerCase())) {
-              merged.push(defU);
-            }
-          }
-          setTeamUsers(merged);
+        if (Array.isArray(uData)) {
+          setTeamUsers(uData);
         }
       }
       if (clientRes.ok) {
         const cData = await clientRes.json();
-        if (Array.isArray(cData) && cData.length > 0) {
+        if (Array.isArray(cData)) {
           setClients(cData);
         }
       }

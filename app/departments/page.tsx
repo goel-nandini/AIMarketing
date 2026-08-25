@@ -18,15 +18,8 @@ export default function DepartmentsPage() {
       const res = await fetch('/api/departments');
       if (res.ok) {
         const data = await res.json();
-        if (Array.isArray(data) && data.length > 0) {
+        if (Array.isArray(data)) {
           setDepartments(data);
-        } else {
-          setDepartments([
-            { id: 'd1', name: 'Sales & Business Development', headName: 'Aman Sir', description: 'Lead generation, sales pipeline, quotation negotiation & client onboarding' },
-            { id: 'd2', name: 'Development', headName: 'Harshit Singh', description: 'Web app development, Next.js architecture, frontend/backend engineering & QA' },
-            { id: 'd3', name: 'Digital Marketing', headName: 'Pooja Sharma', description: 'SEO, Google Ads, Meta Reels/Banners, performance marketing & creative campaigns' },
-            { id: 'd4', name: 'Administration & Management', headName: 'Aman Sir', description: 'Finance, GST invoicing, employee management, SOPs and business reporting' },
-          ]);
         }
       }
     } catch (e) {

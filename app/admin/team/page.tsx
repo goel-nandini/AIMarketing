@@ -69,37 +69,8 @@ export default function AdminTeamPage() {
     },
   ];
 
-  const DEFAULT_INVITATIONS: InvitationItem[] = [
-    {
-      id: 'inv_01',
-      email: 'harshitsingh19622@gmail.com',
-      name: 'Harshit Singh',
-      role: 'ADMIN',
-      passcode: 'AGENT-7788',
-      status: 'ACCEPTED',
-      message: 'Welcome to Agent AI Core Leadership Team',
-      invitedBy: 'usr_aman',
-      invitedByName: 'Aman Sir',
-      expiresAt: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(),
-      createdAt: new Date().toISOString(),
-    },
-    {
-      id: 'inv_02',
-      email: 'team@codekap.com',
-      name: 'Colleague Invite',
-      role: 'TEAM_MEMBER',
-      passcode: 'AGENT-4819',
-      status: 'PENDING',
-      message: 'Welcome to Agent AI team! Join our campaign squad.',
-      invitedBy: 'usr_aman',
-      invitedByName: 'Aman Sir',
-      expiresAt: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(),
-      createdAt: new Date().toISOString(),
-    },
-  ];
-
-  const [users, setUsers] = useState<UserProfile[]>(DEFAULT_USERS);
-  const [invitations, setInvitations] = useState<InvitationItem[]>(DEFAULT_INVITATIONS);
+  const [users, setUsers] = useState<UserProfile[]>([]);
+  const [invitations, setInvitations] = useState<InvitationItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');

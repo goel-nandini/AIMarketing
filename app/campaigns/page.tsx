@@ -6,40 +6,9 @@ import { DashboardLayout } from '../../components/dashboard-layout';
 import { Campaign } from '../../lib/types';
 import { Megaphone, PlusCircle, Building2, ChevronRight, RefreshCw } from 'lucide-react';
 
-const DEFAULT_CAMPAIGNS: Campaign[] = [
-  {
-    id: 'cmp_jeevansphere_01',
-    name: 'Jeevansphere — Delhi Eye Care Consultation Ads',
-    clientId: 'cli_jeevansphere_default',
-    clientName: 'Jeevansphere',
-    objective: 'LEAD_GENERATION',
-    platform: 'Google Ads',
-    location: 'Delhi, India',
-    dailyBudget: 75,
-    totalBudget: 2250,
-    currency: 'CAD',
-    status: 'ACTIVE',
-    startDate: new Date().toISOString().split('T')[0],
-    endDate: new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0],
-    metrics: {
-      spend: 420.5,
-      impressions: 14200,
-      clicks: 890,
-      ctr: 6.27,
-      cpc: 0.47,
-      conversions: 48,
-      cpa: 8.76,
-      conversionRate: 5.39,
-    },
-    aiInsight: 'Strong campaign engagement in Delhi region. Video storyboards driving 3.2x higher consultation bookings.',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-];
-
 export default function CampaignsPage() {
-  const [campaigns, setCampaigns] = useState<Campaign[]>(DEFAULT_CAMPAIGNS);
-  const [loading, setLoading] = useState(false);
+  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function fetchCampaigns() {
