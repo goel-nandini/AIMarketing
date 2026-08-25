@@ -60,17 +60,48 @@ const DEFAULT_TASKS: Task[] = [
   },
 ];
 
+const DEFAULT_TEAM_USERS: UserProfile[] = [
+  {
+    uid: 'usr_harshit',
+    name: 'Harshit Singh',
+    email: 'harshitsingh19622@gmail.com',
+    username: 'harshitsingh19622',
+    role: 'ADMIN',
+    status: 'ACTIVE',
+    title: 'Lead Architect / Admin',
+    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=harshitsingh19622@gmail.com',
+    emailVerified: true,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    uid: 'usr_aman',
+    name: 'Aman Sir',
+    email: 'aman@codekap.com',
+    username: 'aman',
+    role: 'ADMIN',
+    status: 'ACTIVE',
+    title: 'Super Admin / Founder & CEO',
+    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+    emailVerified: true,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+];
+
 export default function TasksPage() {
   const { profile, role, user: authUser } = useAuth();
+  const isSuperOrManager = role === 'ADMIN' || role === 'MANAGER' || profile?.email === 'aman@codekap.com';
+
   const [tasks, setTasks] = useState<Task[]>(DEFAULT_TASKS);
-  const [teamUsers, setTeamUsers] = useState<UserProfile[]>([]);
+  const [teamUsers, setTeamUsers] = useState<UserProfile[]>(DEFAULT_TEAM_USERS);
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
 
   // Tab & Filter state
-  const [activeTab, setActiveTab] = useState<'my' | 'team'>('my');
+  const [activeTab, setActiveTab] = useState<'my' | 'team'>('team');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
 
   // New Task Modal
@@ -80,25 +111,23 @@ export default function TasksPage() {
     title: '',
     description: '',
     priority: 'MEDIUM' as TaskPriority,
-    assignedToEmail: '',
+    assignedToEmail: 'harshitsingh19622@gmail.com',
     clientId: '',
     dueDate: '',
   });
-
-  const isSuperOrManager = role === 'ADMIN' || role === 'MANAGER' || profile?.email === 'aman@codekap.com';
 
   const fetchTasks = async () => {
     try {
       const effectiveUserId = profile?.uid || authUser?.uid || 'usr_aman';
       const headers = { 'X-User-Id': effectiveUserId };
 
-      const url = isSuperOrManager && activeTab === 'team'
+      const url = (isSuperOrManager && activeTab === 'team')
         ? '/api/tasks?all=true'
         : `/api/tasks?userId=${encodeURIComponent(effectiveUserId)}`;
 
       const [taskRes, userRes, clientRes] = await Promise.all([
         fetch(url, { headers }),
-        fetch('/api/admin/users', { headers }),
+        fetch('/api/users', { headers }),
         fetch('/api/clients', { headers }),
       ]);
 
@@ -111,7 +140,13 @@ export default function TasksPage() {
       if (userRes.ok) {
         const uData = await userRes.json();
         if (Array.isArray(uData) && uData.length > 0) {
-          setTeamUsers(uData);
+          const merged = [...uData];
+          for (const defU of DEFAULT_TEAM_USERS) {
+            if (!merged.some((m) => m.email.toLowerCase() === defU.email.toLowerCase())) {
+              merged.push(defU);
+            }
+          }
+          setTeamUsers(merged);
         }
       }
       if (clientRes.ok) {
@@ -138,8 +173,8 @@ export default function TasksPage() {
     setSuccessMessage('');
 
     try {
-      const selectedUser = teamUsers.find(u => u.email === newTask.assignedToEmail);
-      const selectedClient = clients.find(c => c.id === newTask.clientId);
+      const selectedUser = teamUsers.find((u) => u.email.toLowerCase() === newTask.assignedToEmail.toLowerCase());
+      const selectedClient = clients.find((c) => c.id === newTask.clientId);
       const effectiveUserId = profile?.uid || authUser?.uid || 'usr_aman';
 
       const payload = {
@@ -148,7 +183,7 @@ export default function TasksPage() {
         priority: newTask.priority,
         assignedToId: selectedUser?.uid || newTask.assignedToEmail,
         assignedToName: selectedUser?.name || newTask.assignedToEmail.split('@')[0],
-        assignedToEmail: newTask.assignedToEmail,
+        assignedToEmail: newTask.assignedToEmail.toLowerCase().trim(),
         clientId: selectedClient?.id || undefined,
         clientName: selectedClient?.name || undefined,
         dueDate: newTask.dueDate || undefined,
@@ -165,13 +200,25 @@ export default function TasksPage() {
 
       const data = await res.json();
       if (res.ok) {
+        const createdTaskRecord: Task = data.task || {
+          id: `tsk_${Date.now()}`,
+          ...payload,
+          status: 'TODO',
+          assignedById: effectiveUserId,
+          assignedByName: profile?.name || 'Super Admin',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+
+        setTasks((prev) => [createdTaskRecord, ...prev.filter((t) => t.id !== createdTaskRecord.id)]);
         setSuccessMessage(`Task assigned successfully to ${payload.assignedToName}!`);
         setIsModalOpen(false);
+        setActiveTab('team');
         setNewTask({
           title: '',
           description: '',
           priority: 'MEDIUM',
-          assignedToEmail: '',
+          assignedToEmail: 'harshitsingh19622@gmail.com',
           clientId: '',
           dueDate: '',
         });

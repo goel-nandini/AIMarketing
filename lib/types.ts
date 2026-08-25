@@ -326,213 +326,172 @@ export interface AISettings {
   demoMode: boolean;
 }
 
+export type LeadStatus = 'NEW' | 'CONTACTED' | 'QUALIFIED' | 'PROPOSAL_SENT' | 'WON' | 'LOST' | 'INTERESTED' | 'REQUIREMENT' | 'QUOTATION' | 'NEGOTIATION' | string;
+
+export interface LeadItem {
+  id: string;
+  name: string;
+  contactName: string;
+  leadCode: string;
+  email: string;
+  phone?: string;
+  company: string;
+  source?: string;
+  service?: string;
+  status: LeadStatus;
+  estimatedValue: number;
+  notes?: string;
+  nextFollowUpDate?: string;
+  assignedTo?: string;
+  createdAt: string;
+  updatedAt: string;
+  [key: string]: any;
+}
+
 export interface DepartmentItem {
   id: string;
   name: string;
-  headId?: string;
+  code?: string;
   headName?: string;
+  memberCount?: number;
   description?: string;
-  icon?: string;
   createdAt?: string;
-  updatedAt?: string;
+  [key: string]: any;
 }
 
 export interface EmployeeItem {
   id: string;
-  employeeId: string;
+  employeeId?: string;
   name: string;
   email: string;
   phone?: string;
+  role?: string;
   department: string;
   designation: string;
-  role: 'SUPER_ADMIN' | 'DEPT_HEAD' | 'EMPLOYEE';
-  managerId?: string;
-  managerName?: string;
-  joiningDate: string;
-  status: 'ACTIVE' | 'ON_LEAVE' | 'INACTIVE';
-  avatar?: string;
+  salary?: number;
   workloadScore?: number;
-  createdAt?: string;
+  joiningDate?: string;
+  status?: string;
+  avatar?: string;
+  [key: string]: any;
 }
 
-export type LeadStatus = 'NEW' | 'CONTACTED' | 'INTERESTED' | 'REQUIREMENT' | 'QUOTATION' | 'NEGOTIATION' | 'WON' | 'LOST';
-
-export interface LeadItem {
+export interface ExpenseItem {
   id: string;
-  leadCode: string;
-  contactName: string;
-  company: string;
-  phone: string;
-  email: string;
-  service: string;
-  source: string;
-  status: LeadStatus;
-  assignedToId?: string;
-  assignedToName?: string;
-  lastContactDate?: string;
-  nextFollowUpDate?: string;
-  estimatedValue: number;
-  requirementNotes?: string;
-  convertedClientId?: string;
-  createdAt: string;
-  updatedAt?: string;
-}
-
-export type ProjectHealth = 'ON_TRACK' | 'AT_RISK' | 'DELAYED';
-export type ProjectStatus = 'ACTIVE' | 'IN_REVIEW' | 'COMPLETED' | 'ON_HOLD';
-
-export interface ProjectItem {
-  id: string;
-  projectCode: string;
-  name: string;
-  clientId: string;
-  clientName: string;
-  service: string;
-  department: string;
-  managerId?: string;
-  managerName?: string;
-  teamMembersJson?: string;
-  startDate: string;
-  deadline: string;
-  progress: number;
-  health: ProjectHealth;
-  status: ProjectStatus;
-  description: string;
-  priority: 'URGENT' | 'HIGH' | 'MEDIUM' | 'LOW';
-  billingTotal: number;
-  billingPaid: number;
-  gitRepoUrl?: string;
-  liveUrl?: string;
-  createdAt: string;
-}
-
-export interface MilestoneItem {
-  id: string;
-  projectId: string;
-  title: string;
+  title?: string;
+  category?: string;
+  vendor?: string;
   description?: string;
-  order: number;
-  dueDate: string;
-  status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED';
-  completedAt?: string;
-  createdAt?: string;
-}
-
-export interface WorkLogItem {
-  id: string;
-  employeeId: string;
-  employeeName: string;
-  employeeEmail: string;
-  projectId?: string;
-  projectName?: string;
-  taskId?: string;
-  taskTitle?: string;
-  date: string;
-  workCompleted: string;
-  timeSpentHours: number;
-  proofUrl?: string;
-  blocker?: string;
-  tomorrowPlan?: string;
-  createdAt: string;
-}
-
-export interface SOPItem {
-  id: string;
-  code: string;
-  title: string;
-  department: string;
-  service: string;
-  purpose: string;
-  instructions: string;
-  checklistJson: string;
-  requiredProof?: string;
-  expectedDurationHours: number;
-  responsibleRole: string;
-  version: string;
-  active: boolean;
-  createdAt: string;
-}
-
-export interface QuotationItem {
-  id: string;
-  quotationNumber: string;
-  date: string;
-  validUntil: string;
-  clientId: string;
-  clientName: string;
-  clientGstin?: string;
-  billingAddress?: string;
-  itemsJson: string;
-  subtotal: number;
-  taxAmount: number;
-  totalAmount: number;
-  currency: string;
-  status: 'DRAFT' | 'SENT' | 'VIEWED' | 'ACCEPTED' | 'REJECTED' | 'EXPIRED';
-  notes?: string;
-  bankDetails?: string;
-  terms?: string;
-  createdAt: string;
+  amount: number;
+  gstAmount: number;
+  date?: string;
+  approvedBy?: string;
+  status?: string;
+  receiptUrl?: string;
+  [key: string]: any;
 }
 
 export interface InvoiceItem {
   id: string;
   invoiceNumber: string;
-  quotationId?: string;
-  date: string;
-  dueDate: string;
-  clientId: string;
   clientName: string;
   clientGstin?: string;
   billingAddress?: string;
-  itemsJson: string;
+  date?: string;
   subtotal: number;
-  cgst: number;
-  sgst: number;
-  igst: number;
+  cgst?: number;
+  sgst?: number;
+  igst?: number;
+  amount: number;
+  tax?: number;
   totalAmount: number;
-  amountPaid: number;
-  balanceDue: number;
-  currency: string;
-  status: 'DRAFT' | 'SENT' | 'PARTIALLY_PAID' | 'PAID' | 'OVERDUE' | 'CANCELLED';
-  paymentMethod?: string;
   razorpayPaymentLinkId?: string;
-  razorpayPaymentId?: string;
-  notes?: string;
-  terms?: string;
-  createdAt: string;
+  itemsJson?: string;
+  status?: 'PAID' | 'PENDING' | 'OVERDUE' | 'DRAFT' | string;
+  dueDate?: string;
+  issueDate?: string;
+  [key: string]: any;
 }
 
-export interface ExpenseItem {
+export interface QuotationItem {
   id: string;
-  date: string;
-  category: 'SOFTWARE' | 'ADVERTISING' | 'HOSTING' | 'OFFICE' | 'TRAVEL' | 'VENDOR' | 'OTHER';
-  vendor: string;
+  quotationNumber: string;
+  clientName: string;
+  date?: string;
+  subtotal: number;
+  taxAmount: number;
   amount: number;
-  gstAmount: number;
-  paymentMethod: string;
-  description: string;
-  attachmentUrl?: string;
+  totalAmount: number;
+  status?: 'SENT' | 'ACCEPTED' | 'REJECTED' | 'DRAFT' | string;
+  validUntil?: string;
+  createdAt?: string;
+  [key: string]: any;
+}
+
+export type ProjectHealth = 'ON_TRACK' | 'AT_RISK' | 'CRITICAL' | 'DELAYED' | string;
+export type ProjectStatus = 'ACTIVE' | 'PLANNING' | 'COMPLETED' | 'ON_HOLD' | string;
+
+export interface ProjectItem {
+  id: string;
+  projectCode: string;
+  name: string;
+  clientId?: string;
+  clientName: string;
+  service?: string;
   department: string;
+  managerId?: string;
+  managerName?: string;
+  teamMembers?: string[];
+  startDate?: string;
+  deadline?: string;
+  progress?: number;
+  health: ProjectHealth;
+  status?: ProjectStatus;
+  description?: string;
+  priority?: string;
+  billingTotal?: number;
+  billingPaid?: number;
+  gitRepoUrl?: string;
+  liveUrl?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  [key: string]: any;
+}
+
+export interface SOPItem {
+  id: string;
+  code: string;
+  service: string;
+  title: string;
+  department: string;
+  version?: string;
+  purpose?: string;
+  instructions?: string;
+  content?: string;
+  checklistJson?: string;
+  requiredProof?: string;
+  expectedDurationHours?: number;
+  author?: string;
+  lastUpdated?: string;
+  [key: string]: any;
+}
+
+export interface WorkLogItem {
+  id: string;
+  userId?: string;
+  userName?: string;
+  employeeName: string;
+  employeeEmail?: string;
+  taskId?: string;
+  taskTitle?: string;
   projectId?: string;
   projectName?: string;
-  createdById?: string;
-  createdByName?: string;
-  createdAt: string;
+  timeSpentHours?: number;
+  hours?: number;
+  workCompleted?: string;
+  description?: string;
+  proofUrl?: string;
+  tomorrowPlan?: string;
+  date?: string;
+  [key: string]: any;
 }
-
-export interface MarketingContentItem {
-  id: string;
-  clientId: string;
-  clientName: string;
-  campaignId?: string;
-  platform: 'Instagram' | 'Facebook' | 'LinkedIn' | 'Google' | 'YouTube';
-  contentType: 'Post' | 'Reel' | 'Story' | 'Ad Banner' | 'Video';
-  title: string;
-  caption?: string;
-  creativeUrl?: string;
-  status: 'PLANNED' | 'IN_REVIEW' | 'APPROVED' | 'PUBLISHED';
-  publishDate: string;
-  resultsJson?: string;
-  createdAt: string;
-}
-

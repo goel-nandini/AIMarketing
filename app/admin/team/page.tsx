@@ -31,6 +31,7 @@ interface InvitationItem {
   role: string;
   passcode: string;
   status: string;
+  message?: string;
   invitedBy?: string;
   invitedByName?: string;
   expiresAt: string;
@@ -76,6 +77,7 @@ export default function AdminTeamPage() {
       role: 'ADMIN',
       passcode: 'AGENT-7788',
       status: 'ACCEPTED',
+      message: 'Welcome to Agent AI Core Leadership Team',
       invitedBy: 'usr_aman',
       invitedByName: 'Aman Sir',
       expiresAt: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(),
@@ -88,6 +90,7 @@ export default function AdminTeamPage() {
       role: 'TEAM_MEMBER',
       passcode: 'AGENT-4819',
       status: 'PENDING',
+      message: 'Welcome to Agent AI team! Join our campaign squad.',
       invitedBy: 'usr_aman',
       invitedByName: 'Aman Sir',
       expiresAt: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(),
@@ -106,6 +109,7 @@ export default function AdminTeamPage() {
   const [inviteName, setInviteName] = useState('');
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteRole, setInviteRole] = useState<UserRole>('TEAM_MEMBER');
+  const [inviteMessage, setInviteMessage] = useState('');
   const [customPasscode, setCustomPasscode] = useState('');
   const [inviting, setInviting] = useState(false);
   const [generatedPasscodeResult, setGeneratedPasscodeResult] = useState<any | null>(null);
@@ -199,6 +203,7 @@ export default function AdminTeamPage() {
       name: inviteName.trim() || undefined,
       role: inviteRole,
       passcode: targetPasscode,
+      message: inviteMessage.trim() || undefined,
       status: 'PENDING',
       invitedBy: authUser?.uid || profile?.uid || 'usr_aman',
       invitedByName: profile?.name || authUser?.displayName || 'Aman Sir',
@@ -209,7 +214,7 @@ export default function AdminTeamPage() {
     try {
       const headers = await getAuthHeaders(true);
 
-      const fetchPromise = fetch('/api/admin/invitations', {
+      const res = await fetch('/api/admin/invitations', {
         method: 'POST',
         headers,
         body: JSON.stringify({
@@ -217,13 +222,9 @@ export default function AdminTeamPage() {
           name: inviteName.trim() || undefined,
           role: inviteRole,
           customPasscode: customPasscode.trim() || undefined,
+          message: inviteMessage.trim() || undefined,
         }),
       });
-
-      const res = await Promise.race([
-        fetchPromise,
-        new Promise<Response>((_, reject) => setTimeout(() => reject(new Error('timeout')), 3500))
-      ]).catch(() => null);
 
       let savedInvite = fallbackInvite;
 
@@ -443,6 +444,7 @@ export default function AdminTeamPage() {
                       <th className="py-3.5 px-4">Invited Email</th>
                       <th className="py-3.5 px-4">Role Granted</th>
                       <th className="py-3.5 px-4">Team Passcode</th>
+                      <th className="py-3.5 px-4">Invite Message</th>
                       <th className="py-3.5 px-4">Status</th>
                       <th className="py-3.5 px-4">Expires</th>
                       <th className="py-3.5 px-4 text-right">Actions</th>
@@ -479,6 +481,15 @@ export default function AdminTeamPage() {
                               )}
                             </button>
                           </div>
+                        </td>
+                        <td className="py-4 px-4 max-w-xs">
+                          {inv.message ? (
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-50/80 text-blue-900 border border-blue-100 text-[11px] font-medium leading-tight">
+                              💬 &ldquo;{inv.message}&rdquo;
+                            </span>
+                          ) : (
+                            <span className="text-slate-400 text-[11px] italic">No custom message</span>
+                          )}
                         </td>
                         <td className="py-4 px-4">
                           <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${
@@ -712,6 +723,19 @@ export default function AdminTeamPage() {
                         </button>
                       ))}
                     </div>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-bold text-slate-700 block mb-1">
+                      Invitation Message / Note (Optional)
+                    </label>
+                    <textarea
+                      rows={2}
+                      value={inviteMessage}
+                      onChange={(e) => setInviteMessage(e.target.value)}
+                      placeholder="e.g. Welcome to Agent AI! Join our Jeevansphere campaign team."
+                      className="w-full text-xs p-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-600 text-slate-900"
+                    />
                   </div>
 
                   <div>
