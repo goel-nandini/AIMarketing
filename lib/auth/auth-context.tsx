@@ -210,44 +210,51 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } catch {}
       }
 
-      // Attempt Firebase client sign-in
-      try {
-        const cred = await signInWithEmailAndPassword(clientAuth, emailToUse, password);
-        await recordAuditLog({
-          userId: cred.user.uid,
-          userName: cred.user.displayName || cred.user.email || 'User',
-          action: 'USER_LOGIN',
-          status: 'SUCCESS',
-          details: `User logged in with email: ${emailToUse}`,
-        });
+      const isMockKey =
+        !process.env.NEXT_PUBLIC_FIREBASE_API_KEY ||
+        process.env.NEXT_PUBLIC_FIREBASE_API_KEY === 'mock_api_key' ||
+        process.env.NEXT_PUBLIC_FIREBASE_API_KEY.includes('mock');
 
-        await fetchProfile(cred.user);
-        setLoading(false);
-        return { success: true };
-      } catch (authErr: any) {
-        console.warn('[signIn Firebase Auth warn]:', authErr);
-
-        // Fallback for dev / demo mode accounts
-        const initialAdminEmail = (process.env.NEXT_PUBLIC_INITIAL_ADMIN_EMAIL || 'aman@codekap.com').toLowerCase().trim();
-        const isInitialAdmin = lowerInput === initialAdminEmail || lowerInput.includes('aman');
-
-        const devProf: UserProfile = {
-          ...DEFAULT_DEV_ADMIN,
-          uid: `usr_${Date.now().toString(36)}`,
-          name: lowerInput.includes('harshit') ? 'Harshit Singh' : (lowerInput.split('@')[0] || 'Aman Sir'),
-          email: emailToUse.includes('@') ? emailToUse : `${lowerInput}@codekap.com`,
-          username: lowerInput.split('@')[0].replace(/[^a-zA-Z0-9_]/g, '') || 'user',
-          role: isInitialAdmin ? 'ADMIN' : 'TEAM_MEMBER',
-          emailVerified: true,
-        };
-
-        setProfile(devProf);
+      // Attempt Firebase client sign-in only if real credentials provided
+      if (!isMockKey) {
         try {
-          localStorage.setItem('agent_ai_user_session', JSON.stringify(devProf));
-        } catch {}
-        setLoading(false);
-        return { success: true };
+          const cred = await signInWithEmailAndPassword(clientAuth, emailToUse, password);
+          await recordAuditLog({
+            userId: cred.user.uid,
+            userName: cred.user.displayName || cred.user.email || 'User',
+            action: 'USER_LOGIN',
+            status: 'SUCCESS',
+            details: `User logged in with email: ${emailToUse}`,
+          });
+
+          await fetchProfile(cred.user);
+          setLoading(false);
+          return { success: true };
+        } catch (authErr: any) {
+          console.warn('[signIn Firebase Auth warn]:', authErr);
+        }
       }
+
+      // Fallback for dev / demo mode accounts
+      const initialAdminEmail = (process.env.NEXT_PUBLIC_INITIAL_ADMIN_EMAIL || 'aman@codekap.com').toLowerCase().trim();
+      const isInitialAdmin = lowerInput === initialAdminEmail || lowerInput.includes('aman');
+
+      const devProf: UserProfile = {
+        ...DEFAULT_DEV_ADMIN,
+        uid: `usr_${Date.now().toString(36)}`,
+        name: lowerInput.includes('harshit') ? 'Harshit Singh' : (lowerInput.split('@')[0] || 'Aman Sir'),
+        email: emailToUse.includes('@') ? emailToUse : `${lowerInput}@codekap.com`,
+        username: lowerInput.split('@')[0].replace(/[^a-zA-Z0-9_]/g, '') || 'user',
+        role: isInitialAdmin ? 'ADMIN' : 'TEAM_MEMBER',
+        emailVerified: true,
+      };
+
+      setProfile(devProf);
+      try {
+        localStorage.setItem('agent_ai_user_session', JSON.stringify(devProf));
+      } catch {}
+      setLoading(false);
+      return { success: true };
     } catch (err: any) {
       console.error('[signIn Error]:', err);
       setLoading(false);
@@ -286,43 +293,41 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       let fbUser: any = null;
-      let isMockOrFallback = false;
+      const isMockKey =
+        !process.env.NEXT_PUBLIC_FIREBASE_API_KEY ||
+        process.env.NEXT_PUBLIC_FIREBASE_API_KEY === 'mock_api_key' ||
+        process.env.NEXT_PUBLIC_FIREBASE_API_KEY.includes('mock');
 
-      // Try creating account in Firebase Auth with 1.2s timeout
-      try {
-        const createAuthPromise = createUserWithEmailAndPassword(clientAuth, data.email, data.password);
-        const timeoutPromise = new Promise<null>((resolve) => setTimeout(() => resolve(null), 1200));
-        const cred = await Promise.race([createAuthPromise, timeoutPromise]);
+      if (!isMockKey) {
+        // Try creating account in Firebase Auth with 1.2s timeout
+        try {
+          const createAuthPromise = createUserWithEmailAndPassword(clientAuth, data.email, data.password);
+          const timeoutPromise = new Promise<null>((resolve) => setTimeout(() => resolve(null), 1200));
+          const cred = await Promise.race([createAuthPromise, timeoutPromise]);
 
-        if (cred && cred.user) {
-          fbUser = cred.user;
-          try {
-            await firebaseUpdateProfile(fbUser, { displayName: data.name });
-          } catch {}
-        } else {
-          isMockOrFallback = true;
-          fbUser = {
-            uid: `usr_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
-            displayName: data.name,
-            email: data.email,
-            emailVerified: true,
-          };
+          if (cred && cred.user) {
+            fbUser = cred.user;
+            try {
+              await firebaseUpdateProfile(fbUser, { displayName: data.name });
+            } catch {}
+          }
+        } catch (authErr: any) {
+          console.warn('[signUp Firebase Auth warn]:', authErr);
+
+          if (authErr.code === 'auth/email-already-in-use') {
+            setLoading(false);
+            return { success: false, error: 'An account with this email already exists.' };
+          } else if (authErr.code === 'auth/weak-password') {
+            setLoading(false);
+            return { success: false, error: 'Password must be at least 6 characters long.' };
+          } else if (authErr.code === 'auth/invalid-email') {
+            setLoading(false);
+            return { success: false, error: 'Please provide a valid email address.' };
+          }
         }
-      } catch (authErr: any) {
-        console.warn('[signUp Firebase Auth warn]:', authErr);
+      }
 
-        if (authErr.code === 'auth/email-already-in-use') {
-          setLoading(false);
-          return { success: false, error: 'An account with this email already exists.' };
-        } else if (authErr.code === 'auth/weak-password') {
-          setLoading(false);
-          return { success: false, error: 'Password must be at least 6 characters long.' };
-        } else if (authErr.code === 'auth/invalid-email') {
-          setLoading(false);
-          return { success: false, error: 'Please provide a valid email address.' };
-        }
-
-        isMockOrFallback = true;
+      if (!fbUser) {
         fbUser = {
           uid: `usr_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
           displayName: data.name,
