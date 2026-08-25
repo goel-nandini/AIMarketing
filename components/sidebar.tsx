@@ -9,7 +9,6 @@ import {
   Megaphone,
   CheckSquare,
   Sparkles,
-  BarChart3,
   Building2,
   Users,
   Settings,
@@ -28,19 +27,22 @@ import {
   Wallet,
   PieChart,
   Bell,
-  Search,
+  ChevronDown,
 } from 'lucide-react';
 
+interface NavItem {
+  name: string;
+  href: string;
+  icon: React.ComponentType<{ className?: string }>;
+  badge?: string;
+  highlight?: boolean;
+}
+
 interface NavGroup {
+  id: string;
   label: string;
-  items: {
-    name: string;
-    href: string;
-    icon: React.ComponentType<{ className?: string }>;
-    badge?: string;
-    highlight?: boolean;
-    adminOnly?: boolean;
-  }[];
+  icon: React.ComponentType<{ className?: string }>;
+  items: NavItem[];
 }
 
 export function Sidebar() {
@@ -57,7 +59,9 @@ export function Sidebar() {
 
   const navGroups: NavGroup[] = [
     {
+      id: 'management',
       label: 'Management',
+      icon: LayoutDashboard,
       items: [
         { name: 'Owner Dashboard', href: '/dashboard', icon: LayoutDashboard },
         { name: 'Notifications', href: '/notifications', icon: Bell },
@@ -65,7 +69,9 @@ export function Sidebar() {
       ],
     },
     {
-      label: 'Sales CRM',
+      id: 'crm',
+      label: 'Sales & CRM',
+      icon: TrendingUp,
       items: [
         { name: 'Leads Directory', href: '/crm/leads', icon: TrendingUp },
         { name: 'Sales Pipeline (Kanban)', href: '/crm/pipeline', icon: Layers },
@@ -73,7 +79,9 @@ export function Sidebar() {
       ],
     },
     {
+      id: 'team',
       label: 'Organization & Team',
+      icon: Users,
       items: [
         { name: 'Employees & Workload', href: '/employees', icon: Users },
         { name: 'Departments', href: '/departments', icon: Briefcase },
@@ -81,7 +89,9 @@ export function Sidebar() {
       ],
     },
     {
+      id: 'projects',
       label: 'Clients & Projects',
+      icon: Briefcase,
       items: [
         { name: 'Client Business Hub', href: '/clients', icon: Building2 },
         { name: 'Projects & Milestones', href: '/projects', icon: Briefcase },
@@ -91,7 +101,9 @@ export function Sidebar() {
       ],
     },
     {
+      id: 'workspaces',
       label: 'SOPs & Workspaces',
+      icon: Sparkles,
       items: [
         { name: 'SOP Library & Builder', href: '/sop', icon: BookOpen },
         { name: 'Development Workspace', href: '/workspaces/dev', icon: Code2 },
@@ -100,7 +112,9 @@ export function Sidebar() {
       ],
     },
     {
+      id: 'finance',
       label: 'Finance & GST Billing',
+      icon: Receipt,
       items: [
         { name: 'Finance Overview', href: '/finance', icon: DollarSign },
         { name: 'Quotations', href: '/finance/quotations', icon: Receipt },
@@ -110,12 +124,45 @@ export function Sidebar() {
       ],
     },
     {
+      id: 'system',
       label: 'System & Config',
+      icon: Settings,
       items: [
         { name: 'Platform Settings', href: '/settings', icon: Settings },
       ],
     },
   ];
+
+  // Open/collapsed states
+  const [openGroups, setOpenGroups] = React.useState<Record<string, boolean>>({
+    management: true,
+    crm: false,
+    team: false,
+    projects: false,
+    workspaces: false,
+    finance: false,
+    system: false,
+  });
+
+  // Auto-expand active group
+  React.useEffect(() => {
+    if (!pathname) return;
+    for (const group of navGroups) {
+      const hasActiveChild = group.items.some(
+        (item) => pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href))
+      );
+      if (hasActiveChild) {
+        setOpenGroups((prev) => ({ ...prev, [group.id]: true }));
+      }
+    }
+  }, [pathname]);
+
+  const toggleGroup = (groupId: string) => {
+    setOpenGroups((prev) => ({
+      ...prev,
+      [groupId]: !prev[groupId],
+    }));
+  };
 
   const handleSignOut = async () => {
     await signOut();
@@ -143,44 +190,97 @@ export function Sidebar() {
       </div>
 
       {/* Main Navigation Scrollable */}
-      <div className="flex-1 overflow-y-auto px-3 py-3 space-y-4 text-slate-700">
-        {navGroups.map((group) => (
-          <div key={group.label}>
-            <p className="px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">
-              {group.label}
-            </p>
-            <div className="space-y-0.5">
-              {group.items.map((item) => {
-                const Icon = item.icon;
-                const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname?.startsWith(item.href));
+      <div className="flex-1 overflow-y-auto px-3 py-3 space-y-1.5 text-slate-700">
+        {navGroups.map((group) => {
+          const GroupIcon = group.icon;
+          const isOpen = !!openGroups[group.id];
+          const hasActiveChild = group.items.some(
+            (item) => pathname === item.href || (item.href !== '/dashboard' && pathname?.startsWith(item.href))
+          );
 
-                return (
-                  <Link
-                    key={item.name}
-                    href={item.href}
-                    className={`flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                      isActive
-                        ? 'bg-blue-50 text-blue-700 font-semibold border border-blue-100/80 shadow-2xs'
-                        : item.highlight
-                        ? 'bg-blue-600 text-white font-medium hover:bg-blue-700 shadow-sm shadow-blue-600/20'
-                        : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+          return (
+            <div key={group.id} className="rounded-xl overflow-hidden transition-all">
+              {/* Group Collapsible Button */}
+              <button
+                type="button"
+                onClick={() => toggleGroup(group.id)}
+                className={`w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-bold transition-all text-left cursor-pointer ${
+                  hasActiveChild
+                    ? 'bg-blue-50/70 text-blue-900 font-extrabold border border-blue-100/60'
+                    : 'text-slate-700 hover:bg-slate-50 hover:text-slate-900'
+                }`}
+              >
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div
+                    className={`w-6 h-6 rounded-lg flex items-center justify-center shrink-0 transition-colors ${
+                      hasActiveChild
+                        ? 'bg-blue-600 text-white shadow-2xs'
+                        : 'bg-slate-100 text-slate-500'
                     }`}
                   >
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <Icon className={`w-3.5 h-3.5 shrink-0 ${isActive ? 'text-blue-600' : item.highlight ? 'text-white' : 'text-slate-400'}`} />
-                      <span className="truncate">{item.name}</span>
-                    </div>
-                    {item.badge && (
-                      <span className="text-[10px] px-1.5 py-0.5 rounded-full font-bold bg-amber-100 text-amber-800 shrink-0">
-                        {item.badge}
-                      </span>
-                    )}
-                  </Link>
-                );
-              })}
+                    <GroupIcon className="w-3.5 h-3.5" />
+                  </div>
+                  <span className="truncate">{group.label}</span>
+                </div>
+
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <span className="text-[10px] font-semibold text-slate-400 bg-slate-100 px-1.5 py-0.2 rounded-full">
+                    {group.items.length}
+                  </span>
+                  <ChevronDown
+                    className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${
+                      isOpen ? 'rotate-180 text-slate-700' : ''
+                    }`}
+                  />
+                </div>
+              </button>
+
+              {/* Sub-items list */}
+              {isOpen && (
+                <div className="pl-3 pr-1 pt-1 pb-1.5 space-y-0.5 border-l-2 border-slate-100 ml-5.5 my-1 transition-all">
+                  {group.items.map((item) => {
+                    const ItemIcon = item.icon;
+                    const isActive =
+                      pathname === item.href ||
+                      (item.href !== '/dashboard' && pathname?.startsWith(item.href));
+
+                    return (
+                      <Link
+                        key={item.name}
+                        href={item.href}
+                        className={`flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                          isActive
+                            ? 'bg-blue-50 text-blue-700 font-bold border border-blue-100/80 shadow-2xs'
+                            : item.highlight
+                            ? 'bg-blue-600 text-white font-medium hover:bg-blue-700 shadow-sm shadow-blue-600/20'
+                            : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          <ItemIcon
+                            className={`w-3.5 h-3.5 shrink-0 ${
+                              isActive
+                                ? 'text-blue-600'
+                                : item.highlight
+                                ? 'text-white'
+                                : 'text-slate-400'
+                            }`}
+                          />
+                          <span className="truncate">{item.name}</span>
+                        </div>
+                        {item.badge && (
+                          <span className="text-[9px] px-1.5 py-0.2 rounded-full font-bold bg-amber-100 text-amber-800 shrink-0">
+                            {item.badge}
+                          </span>
+                        )}
+                      </Link>
+                    );
+                  })}
+                </div>
+              )}
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* User Profile Footer */}
