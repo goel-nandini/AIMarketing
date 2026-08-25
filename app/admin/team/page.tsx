@@ -74,6 +74,7 @@ export default function AdminTeamPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
+  const [resendingId, setResendingId] = useState<string | null>(null);
 
   // Modal State
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
@@ -241,6 +242,29 @@ export default function AdminTeamPage() {
       }).catch((err) => console.warn('[Revoke Network Notice]:', err));
     } catch (err: any) {
       console.warn('[Revoke Note]:', err);
+    }
+  };
+
+  const handleResendInvite = async (invitationId: string, email: string) => {
+    setResendingId(invitationId);
+    setError('');
+    setSuccessMessage('');
+    try {
+      const headers = await getAuthHeaders();
+      const res = await fetch(`/api/admin/invitations/${encodeURIComponent(invitationId)}/resend`, {
+        method: 'POST',
+        headers,
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setSuccessMessage(`Invitation email & passcode resent to ${email}!`);
+      } else {
+        setError(data.error || 'Failed to resend invitation email.');
+      }
+    } catch (err: any) {
+      setError(err.message || 'Network error resending email.');
+    } finally {
+      setResendingId(null);
     }
   };
 
@@ -478,12 +502,32 @@ export default function AdminTeamPage() {
                         </td>
                         <td className="py-4 px-4 text-right">
                           {inv.status === 'PENDING' && (
-                            <button
-                              onClick={() => handleRevokeInvite(inv.id)}
-                              className="px-2.5 py-1 rounded-lg border border-rose-200 text-rose-600 hover:bg-rose-50 text-[11px] font-bold"
-                            >
-                              Revoke Code
-                            </button>
+                            <div className="inline-flex items-center gap-1.5 justify-end">
+                              <button
+                                onClick={() => handleResendInvite(inv.id, inv.email)}
+                                disabled={resendingId === inv.id}
+                                className="px-2.5 py-1 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 text-[11px] font-bold transition-colors disabled:opacity-60 flex items-center gap-1 cursor-pointer"
+                                title="Resend Email to Gmail Inbox"
+                              >
+                                {resendingId === inv.id ? (
+                                  <>
+                                    <RefreshCw className="w-3 h-3 animate-spin" />
+                                    <span>Sending...</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Mail className="w-3 h-3" />
+                                    <span>Resend Email</span>
+                                  </>
+                                )}
+                              </button>
+                              <button
+                                onClick={() => handleRevokeInvite(inv.id)}
+                                className="px-2.5 py-1 rounded-lg border border-rose-200 text-rose-600 hover:bg-rose-50 text-[11px] font-bold cursor-pointer"
+                              >
+                                Revoke
+                              </button>
+                            </div>
                           )}
                         </td>
                       </tr>
