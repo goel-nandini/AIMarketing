@@ -23,43 +23,44 @@ import {
   Check
 } from 'lucide-react';
 
-  const DEFAULT_TASKS: Task[] = [
-    {
-      id: 'tsk_01',
-      title: 'Design & Launch 3 Eye Care Visual Ads for Jeevansphere',
-      description: 'Create 3 high-converting creative visuals and marketing copy for Jeevansphere clinic targeting eye care consultations. Please review brand tone and launch approval.',
-      priority: 'URGENT',
-      status: 'TODO',
-      assignedToId: 'usr_harshit',
-      assignedToName: 'Harshit Singh',
-      assignedToEmail: 'harshitsingh19622@gmail.com',
-      assignedById: 'usr_aman',
-      assignedByName: 'Aman Sir',
-      clientId: 'cli_jeevansphere_default',
-      clientName: 'Jeevansphere',
-      dueDate: '2026-08-30',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    },
-    {
-      id: 'tsk_02',
-      title: 'Setup & Verify Live Deployment Link & Google Ads Tracking',
-      description: 'Link the GitHub code repository and live deployment URL for Jeevansphere in the Client Business Hub.',
-      priority: 'HIGH',
-      status: 'TODO',
-      assignedToId: 'usr_harshit',
-      assignedToName: 'Harshit Singh',
-      assignedToEmail: 'harshitsingh19622@gmail.com',
-      assignedById: 'usr_aman',
-      assignedByName: 'Aman Sir',
-      clientId: 'cli_jeevansphere_default',
-      clientName: 'Jeevansphere',
-      dueDate: '2026-09-02',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    },
-  ];
+const DEFAULT_TASKS: Task[] = [
+  {
+    id: 'tsk_01',
+    title: 'Design & Launch 3 Eye Care Visual Ads for Jeevansphere',
+    description: 'Create 3 high-converting creative visuals and marketing copy for Jeevansphere clinic targeting eye care consultations. Please review brand tone and launch approval.',
+    priority: 'URGENT',
+    status: 'TODO',
+    assignedToId: 'usr_harshit',
+    assignedToName: 'Harshit Singh',
+    assignedToEmail: 'harshitsingh19622@gmail.com',
+    assignedById: 'usr_aman',
+    assignedByName: 'Aman Sir',
+    clientId: 'cli_jeevansphere_default',
+    clientName: 'Jeevansphere',
+    dueDate: '2026-08-30',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: 'tsk_02',
+    title: 'Setup & Verify Live Deployment Link & Google Ads Tracking',
+    description: 'Link the GitHub code repository and live deployment URL for Jeevansphere in the Client Business Hub.',
+    priority: 'HIGH',
+    status: 'TODO',
+    assignedToId: 'usr_harshit',
+    assignedToName: 'Harshit Singh',
+    assignedToEmail: 'harshitsingh19622@gmail.com',
+    assignedById: 'usr_aman',
+    assignedByName: 'Aman Sir',
+    clientId: 'cli_jeevansphere_default',
+    clientName: 'Jeevansphere',
+    dueDate: '2026-09-02',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+];
 
+export default function TasksPage() {
   const { profile, role, user: authUser } = useAuth();
   const [tasks, setTasks] = useState<Task[]>(DEFAULT_TASKS);
   const [teamUsers, setTeamUsers] = useState<UserProfile[]>([]);
