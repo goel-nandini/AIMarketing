@@ -1,8 +1,10 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '../../../lib/prisma';
+import { ensureSeedData } from '../../../lib/seed';
 
 export async function GET() {
   try {
+    await ensureSeedData();
     const auditLogs = await prisma.auditLog.findMany({
       orderBy: { timestamp: 'desc' },
       take: 100,

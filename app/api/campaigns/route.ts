@@ -1,8 +1,10 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '../../../lib/prisma';
+import { ensureSeedData } from '../../../lib/seed';
 
 export async function GET() {
   try {
+    await ensureSeedData();
     const campaigns = await prisma.campaign.findMany({
       include: {
         client: true,
@@ -51,6 +53,7 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
+    await ensureSeedData();
     const brief = await req.json();
     const client = await prisma.client.findUnique({ where: { id: brief.clientId } });
 

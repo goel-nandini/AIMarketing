@@ -1,9 +1,11 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { ensureSeedData } from '@/lib/seed';
 import { generateCreativeBanner } from '@/lib/services/media/creative-banner-generator';
 
 export async function GET(req: Request) {
   try {
+    await ensureSeedData();
     const { searchParams } = new URL(req.url);
     const campaignId = searchParams.get('campaignId');
 
