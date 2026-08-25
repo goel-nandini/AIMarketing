@@ -58,8 +58,8 @@ const DEFAULT_DEV_ADMIN: UserProfile = {
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<FirebaseUser | null>(null);
-  const [profile, setProfile] = useState<UserProfile | null>(DEFAULT_DEV_ADMIN);
-  const [loading, setLoading] = useState<boolean>(false);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
 
   const fetchProfile = async (fbUser: FirebaseUser) => {
     try {
@@ -107,18 +107,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
-    // 1. Instantly ensure profile exists
+    // 1. Read existing saved session from localStorage if user had logged in previously
     try {
       const cached = localStorage.getItem('agent_ai_user_session');
       if (cached) {
         setProfile(JSON.parse(cached));
       } else {
-        setProfile(DEFAULT_DEV_ADMIN);
-        localStorage.setItem('agent_ai_user_session', JSON.stringify(DEFAULT_DEV_ADMIN));
+        setProfile(null);
       }
     } catch {
-      setProfile(DEFAULT_DEV_ADMIN);
+      setProfile(null);
     }
+    setLoading(false);
 
     // 2. Attach Firebase Auth listener safely
     let unsubscribe = () => {};
@@ -138,12 +138,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
         },
         (error) => {
-          console.warn('[AuthProvider] onAuthStateChanged error:', error);
+          console.warn('[AuthProvider] Firebase Auth listener note:', error);
           setLoading(false);
         }
       );
-    } catch (err) {
-      console.warn('[AuthProvider] onAuthStateChanged initialization error:', err);
+    } catch {
       setLoading(false);
     }
 

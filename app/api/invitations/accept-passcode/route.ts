@@ -96,7 +96,7 @@ export async function POST(req: Request) {
       data: {
         userId: user.id,
         userName: user.name,
-        action: `Team Member Joined via Passcode: [${cleanPasscode}]`,
+        action: `Team Member Joined via Passcode: [${withHyphen}]`,
         apiOperation: 'POST /api/invitations/accept-passcode (Prisma Engine)',
         status: 'SUCCESS',
         details: `Assigned Role: ${assignedRole}, Invited By: ${invite.invitedByName || 'Super Admin'}`,
