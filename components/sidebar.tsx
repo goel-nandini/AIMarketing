@@ -133,7 +133,7 @@ export function Sidebar() {
     },
   ];
 
-  // Open/collapsed states
+  // Open/collapsed states with smooth transitions
   const [openGroups, setOpenGroups] = React.useState<Record<string, boolean>>({
     management: true,
     crm: false,
@@ -144,7 +144,7 @@ export function Sidebar() {
     system: false,
   });
 
-  // Auto-expand active group
+  // Auto-expand active group with smooth recognition
   React.useEffect(() => {
     if (!pathname) return;
     for (const group of navGroups) {
@@ -170,16 +170,18 @@ export function Sidebar() {
   };
 
   return (
-    <aside className="w-64 bg-white border-r border-slate-200 flex flex-col h-screen sticky top-0 z-30 select-none shadow-xs">
+    <aside className="w-64 bg-white border-r border-slate-200 flex flex-col h-screen sticky top-0 z-30 select-none shadow-2xs">
       {/* Brand Header */}
       <div className="p-4 border-b border-slate-100 flex items-center justify-between">
         <Link href="/dashboard" className="flex items-center gap-3 group">
-          <div className="w-9 h-9 rounded-xl bg-slate-900 flex items-center justify-center text-amber-400 font-extrabold text-lg shadow-md shadow-slate-900/20 group-hover:scale-105 transition-transform border border-slate-800">
+          <div className="w-9 h-9 rounded-xl bg-slate-900 flex items-center justify-center text-amber-400 font-extrabold text-lg shadow-md shadow-slate-900/15 group-hover:scale-105 transition-transform duration-200 ease-out border border-slate-800">
             K
           </div>
           <div>
             <div className="flex items-center gap-1.5">
-              <span className="font-bold text-slate-900 text-base tracking-tight">CodeKap OS</span>
+              <span className="font-bold text-slate-900 text-base tracking-tight group-hover:text-blue-600 transition-colors duration-200">
+                CodeKap OS
+              </span>
               <span className="text-[9px] uppercase tracking-wider font-bold px-1.5 py-0.5 rounded bg-amber-50 text-amber-800 border border-amber-200">
                 v1.0
               </span>
@@ -190,7 +192,7 @@ export function Sidebar() {
       </div>
 
       {/* Main Navigation Scrollable */}
-      <div className="flex-1 overflow-y-auto px-3 py-3 space-y-1.5 text-slate-700">
+      <div className="flex-1 overflow-y-auto px-3 py-3 space-y-1.5 text-slate-700 custom-scrollbar">
         {navGroups.map((group) => {
           const GroupIcon = group.icon;
           const isOpen = !!openGroups[group.id];
@@ -199,22 +201,22 @@ export function Sidebar() {
           );
 
           return (
-            <div key={group.id} className="rounded-xl overflow-hidden transition-all">
+            <div key={group.id} className="rounded-xl overflow-hidden transition-all duration-200">
               {/* Group Collapsible Button */}
               <button
                 type="button"
                 onClick={() => toggleGroup(group.id)}
-                className={`w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-bold transition-all text-left cursor-pointer ${
+                className={`w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-bold transition-all duration-200 text-left cursor-pointer btn-press ${
                   hasActiveChild
-                    ? 'bg-blue-50/70 text-blue-900 font-extrabold border border-blue-100/60'
+                    ? 'bg-blue-50/80 text-blue-900 font-extrabold border border-blue-100/70 shadow-2xs'
                     : 'text-slate-700 hover:bg-slate-50 hover:text-slate-900'
                 }`}
               >
                 <div className="flex items-center gap-2.5 min-w-0">
                   <div
-                    className={`w-6 h-6 rounded-lg flex items-center justify-center shrink-0 transition-colors ${
+                    className={`w-6 h-6 rounded-lg flex items-center justify-center shrink-0 transition-all duration-200 ${
                       hasActiveChild
-                        ? 'bg-blue-600 text-white shadow-2xs'
+                        ? 'bg-blue-600 text-white shadow-2xs scale-102'
                         : 'bg-slate-100 text-slate-500'
                     }`}
                   >
@@ -228,16 +230,16 @@ export function Sidebar() {
                     {group.items.length}
                   </span>
                   <ChevronDown
-                    className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${
-                      isOpen ? 'rotate-180 text-slate-700' : ''
+                    className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-250 ease-out ${
+                      isOpen ? 'rotate-180 text-slate-700' : 'rotate-0'
                     }`}
                   />
                 </div>
               </button>
 
-              {/* Sub-items list */}
+              {/* Sub-items list with smooth slide-and-fade animation */}
               {isOpen && (
-                <div className="pl-3 pr-1 pt-1 pb-1.5 space-y-0.5 border-l-2 border-slate-100 ml-5.5 my-1 transition-all">
+                <div className="pl-3 pr-1 pt-1 pb-1.5 space-y-0.5 border-l-2 border-slate-100 ml-5.5 my-1 animate-accordion">
                   {group.items.map((item) => {
                     const ItemIcon = item.icon;
                     const isActive =
@@ -248,7 +250,7 @@ export function Sidebar() {
                       <Link
                         key={item.name}
                         href={item.href}
-                        className={`flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                        className={`group flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 btn-press ${
                           isActive
                             ? 'bg-blue-50 text-blue-700 font-bold border border-blue-100/80 shadow-2xs'
                             : item.highlight
@@ -258,12 +260,12 @@ export function Sidebar() {
                       >
                         <div className="flex items-center gap-2 min-w-0">
                           <ItemIcon
-                            className={`w-3.5 h-3.5 shrink-0 ${
+                            className={`w-3.5 h-3.5 shrink-0 transition-transform duration-200 group-hover:translate-x-0.5 ${
                               isActive
                                 ? 'text-blue-600'
                                 : item.highlight
                                 ? 'text-white'
-                                : 'text-slate-400'
+                                : 'text-slate-400 group-hover:text-slate-600'
                             }`}
                           />
                           <span className="truncate">{item.name}</span>
@@ -286,16 +288,16 @@ export function Sidebar() {
       {/* User Profile Footer */}
       <div className="p-3 border-t border-slate-200 bg-white">
         {profile ? (
-          <div className="p-2 rounded-xl border border-slate-200 hover:border-slate-300 transition-colors bg-white shadow-2xs">
+          <div className="p-2 rounded-xl border border-slate-200 hover:border-slate-300 transition-all duration-200 bg-white shadow-2xs card-lift">
             <Link href="/profile" className="flex items-center gap-2.5 group">
               <img
                 src={profile.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile.uid}`}
                 alt={profile.name}
-                className="w-8 h-8 rounded-full object-cover border border-slate-200 shrink-0"
+                className="w-8 h-8 rounded-full object-cover border border-slate-200 shrink-0 group-hover:scale-105 transition-transform duration-200"
               />
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1">
-                  <span className="text-xs font-bold text-slate-900 truncate group-hover:text-blue-600 transition-colors">
+                  <span className="text-xs font-bold text-slate-900 truncate group-hover:text-blue-600 transition-colors duration-200">
                     {profile.name}
                   </span>
                   <span
@@ -316,7 +318,7 @@ export function Sidebar() {
 
         <button
           onClick={handleSignOut}
-          className="mt-1.5 flex items-center justify-center gap-1.5 w-full py-1 text-xs font-semibold text-slate-500 hover:text-rose-600 transition-colors cursor-pointer"
+          className="mt-1.5 flex items-center justify-center gap-1.5 w-full py-1.5 text-xs font-semibold text-slate-500 hover:text-rose-600 transition-colors duration-200 cursor-pointer btn-press"
         >
           <LogOut className="w-3.5 h-3.5" />
           <span>Sign Out</span>
