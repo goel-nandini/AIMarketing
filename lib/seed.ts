@@ -12,6 +12,62 @@ const SQLITE_INIT_TABLES = [
     "updatedAt" DATETIME NOT NULL
   );`,
   `CREATE UNIQUE INDEX IF NOT EXISTS "User_email_key" ON "User"("email");`,
+  
+  `CREATE TABLE IF NOT EXISTS "Department" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "name" TEXT NOT NULL,
+    "headId" TEXT,
+    "headName" TEXT,
+    "description" TEXT,
+    "icon" TEXT,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL
+  );`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS "Department_name_key" ON "Department"("name");`,
+
+  `CREATE TABLE IF NOT EXISTS "Employee" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "employeeId" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "email" TEXT NOT NULL,
+    "phone" TEXT,
+    "department" TEXT NOT NULL,
+    "designation" TEXT NOT NULL,
+    "role" TEXT NOT NULL DEFAULT 'EMPLOYEE',
+    "managerId" TEXT,
+    "managerName" TEXT,
+    "joiningDate" TEXT NOT NULL,
+    "status" TEXT NOT NULL DEFAULT 'ACTIVE',
+    "avatar" TEXT,
+    "workloadScore" INTEGER NOT NULL DEFAULT 0,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL
+  );`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS "Employee_employeeId_key" ON "Employee"("employeeId");`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS "Employee_email_key" ON "Employee"("email");`,
+
+  `CREATE TABLE IF NOT EXISTS "Lead" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "leadCode" TEXT NOT NULL,
+    "contactName" TEXT NOT NULL,
+    "company" TEXT NOT NULL,
+    "phone" TEXT NOT NULL,
+    "email" TEXT NOT NULL,
+    "service" TEXT NOT NULL,
+    "source" TEXT NOT NULL DEFAULT 'Website',
+    "status" TEXT NOT NULL DEFAULT 'NEW',
+    "assignedToId" TEXT,
+    "assignedToName" TEXT,
+    "lastContactDate" TEXT,
+    "nextFollowUpDate" TEXT,
+    "estimatedValue" REAL NOT NULL DEFAULT 0,
+    "requirementNotes" TEXT,
+    "convertedClientId" TEXT,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL
+  );`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS "Lead_leadCode_key" ON "Lead"("leadCode");`,
+
   `CREATE TABLE IF NOT EXISTS "Client" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "name" TEXT NOT NULL,
@@ -34,6 +90,200 @@ const SQLITE_INIT_TABLES = [
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" DATETIME NOT NULL
   );`,
+
+  `CREATE TABLE IF NOT EXISTS "Project" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "projectCode" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "clientId" TEXT NOT NULL,
+    "clientName" TEXT NOT NULL,
+    "service" TEXT NOT NULL,
+    "department" TEXT NOT NULL DEFAULT 'Development',
+    "managerId" TEXT,
+    "managerName" TEXT,
+    "teamMembersJson" TEXT DEFAULT '[]',
+    "startDate" TEXT NOT NULL,
+    "deadline" TEXT NOT NULL,
+    "progress" INTEGER NOT NULL DEFAULT 0,
+    "health" TEXT NOT NULL DEFAULT 'ON_TRACK',
+    "status" TEXT NOT NULL DEFAULT 'ACTIVE',
+    "description" TEXT NOT NULL,
+    "priority" TEXT NOT NULL DEFAULT 'MEDIUM',
+    "billingTotal" REAL NOT NULL DEFAULT 0,
+    "billingPaid" REAL NOT NULL DEFAULT 0,
+    "gitRepoUrl" TEXT,
+    "liveUrl" TEXT,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL
+  );`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS "Project_projectCode_key" ON "Project"("projectCode");`,
+
+  `CREATE TABLE IF NOT EXISTS "Milestone" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "projectId" TEXT NOT NULL,
+    "title" TEXT NOT NULL,
+    "description" TEXT,
+    "order" INTEGER NOT NULL DEFAULT 1,
+    "dueDate" TEXT NOT NULL,
+    "status" TEXT NOT NULL DEFAULT 'PENDING',
+    "completedAt" DATETIME,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL
+  );`,
+
+  `CREATE TABLE IF NOT EXISTS "Task" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "title" TEXT NOT NULL,
+    "description" TEXT NOT NULL,
+    "priority" TEXT NOT NULL DEFAULT 'MEDIUM',
+    "status" TEXT NOT NULL DEFAULT 'TODO',
+    "assignedToId" TEXT NOT NULL,
+    "assignedToName" TEXT NOT NULL,
+    "assignedToEmail" TEXT NOT NULL,
+    "assignedById" TEXT NOT NULL,
+    "assignedByName" TEXT NOT NULL,
+    "clientId" TEXT,
+    "clientName" TEXT,
+    "campaignId" TEXT,
+    "campaignName" TEXT,
+    "projectId" TEXT,
+    "projectName" TEXT,
+    "sopRef" TEXT,
+    "proofUrl" TEXT,
+    "githubLink" TEXT,
+    "estimatedHours" REAL,
+    "dueDate" TEXT,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL
+  );`,
+
+  `CREATE TABLE IF NOT EXISTS "WorkLog" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "employeeId" TEXT NOT NULL,
+    "employeeName" TEXT NOT NULL,
+    "employeeEmail" TEXT NOT NULL,
+    "projectId" TEXT,
+    "projectName" TEXT,
+    "taskId" TEXT,
+    "taskTitle" TEXT,
+    "date" TEXT NOT NULL,
+    "workCompleted" TEXT NOT NULL,
+    "timeSpentHours" REAL NOT NULL DEFAULT 0,
+    "proofUrl" TEXT,
+    "blocker" TEXT,
+    "tomorrowPlan" TEXT,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL
+  );`,
+
+  `CREATE TABLE IF NOT EXISTS "SOP" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "code" TEXT NOT NULL,
+    "title" TEXT NOT NULL,
+    "department" TEXT NOT NULL,
+    "service" TEXT NOT NULL,
+    "purpose" TEXT NOT NULL,
+    "instructions" TEXT NOT NULL,
+    "checklistJson" TEXT NOT NULL DEFAULT '[]',
+    "requiredProof" TEXT,
+    "expectedDurationHours" REAL NOT NULL DEFAULT 0,
+    "responsibleRole" TEXT NOT NULL DEFAULT 'EMPLOYEE',
+    "version" TEXT NOT NULL DEFAULT '1.0',
+    "active" BOOLEAN NOT NULL DEFAULT 1,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL
+  );`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS "SOP_code_key" ON "SOP"("code");`,
+
+  `CREATE TABLE IF NOT EXISTS "Quotation" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "quotationNumber" TEXT NOT NULL,
+    "date" TEXT NOT NULL,
+    "validUntil" TEXT NOT NULL,
+    "clientId" TEXT NOT NULL,
+    "clientName" TEXT NOT NULL,
+    "clientGstin" TEXT,
+    "billingAddress" TEXT,
+    "itemsJson" TEXT NOT NULL DEFAULT '[]',
+    "subtotal" REAL NOT NULL DEFAULT 0,
+    "taxAmount" REAL NOT NULL DEFAULT 0,
+    "totalAmount" REAL NOT NULL DEFAULT 0,
+    "currency" TEXT NOT NULL DEFAULT 'INR',
+    "status" TEXT NOT NULL DEFAULT 'DRAFT',
+    "notes" TEXT,
+    "bankDetails" TEXT,
+    "terms" TEXT,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL
+  );`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS "Quotation_quotationNumber_key" ON "Quotation"("quotationNumber");`,
+
+  `CREATE TABLE IF NOT EXISTS "Invoice" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "invoiceNumber" TEXT NOT NULL,
+    "quotationId" TEXT,
+    "date" TEXT NOT NULL,
+    "dueDate" TEXT NOT NULL,
+    "clientId" TEXT NOT NULL,
+    "clientName" TEXT NOT NULL,
+    "clientGstin" TEXT,
+    "billingAddress" TEXT,
+    "itemsJson" TEXT NOT NULL DEFAULT '[]',
+    "subtotal" REAL NOT NULL DEFAULT 0,
+    "cgst" REAL NOT NULL DEFAULT 0,
+    "sgst" REAL NOT NULL DEFAULT 0,
+    "igst" REAL NOT NULL DEFAULT 0,
+    "totalAmount" REAL NOT NULL DEFAULT 0,
+    "amountPaid" REAL NOT NULL DEFAULT 0,
+    "balanceDue" REAL NOT NULL DEFAULT 0,
+    "currency" TEXT NOT NULL DEFAULT 'INR',
+    "status" TEXT NOT NULL DEFAULT 'DRAFT',
+    "paymentMethod" TEXT,
+    "razorpayPaymentLinkId" TEXT,
+    "razorpayPaymentId" TEXT,
+    "notes" TEXT,
+    "terms" TEXT,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL
+  );`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS "Invoice_invoiceNumber_key" ON "Invoice"("invoiceNumber");`,
+
+  `CREATE TABLE IF NOT EXISTS "Expense" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "date" TEXT NOT NULL,
+    "category" TEXT NOT NULL,
+    "vendor" TEXT NOT NULL,
+    "amount" REAL NOT NULL DEFAULT 0,
+    "gstAmount" REAL NOT NULL DEFAULT 0,
+    "paymentMethod" TEXT NOT NULL DEFAULT 'Bank Transfer',
+    "description" TEXT NOT NULL,
+    "attachmentUrl" TEXT,
+    "department" TEXT NOT NULL DEFAULT 'Management',
+    "projectId" TEXT,
+    "projectName" TEXT,
+    "createdById" TEXT,
+    "createdByName" TEXT,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL
+  );`,
+
+  `CREATE TABLE IF NOT EXISTS "MarketingContent" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "clientId" TEXT NOT NULL,
+    "clientName" TEXT NOT NULL,
+    "campaignId" TEXT,
+    "platform" TEXT NOT NULL DEFAULT 'Instagram',
+    "contentType" TEXT NOT NULL DEFAULT 'Post',
+    "title" TEXT NOT NULL,
+    "caption" TEXT,
+    "creativeUrl" TEXT,
+    "status" TEXT NOT NULL DEFAULT 'PLANNED',
+    "publishDate" TEXT NOT NULL,
+    "resultsJson" TEXT,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL
+  );`,
+
   `CREATE TABLE IF NOT EXISTS "Campaign" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "name" TEXT NOT NULL,
@@ -62,6 +312,7 @@ const SQLITE_INIT_TABLES = [
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" DATETIME NOT NULL
   );`,
+
   `CREATE TABLE IF NOT EXISTS "Creative" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "campaignId" TEXT,
@@ -78,81 +329,7 @@ const SQLITE_INIT_TABLES = [
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" DATETIME NOT NULL
   );`,
-  `CREATE TABLE IF NOT EXISTS "CampaignBrief" (
-    "id" TEXT NOT NULL PRIMARY KEY,
-    "campaignId" TEXT NOT NULL,
-    "productService" TEXT NOT NULL,
-    "serviceDescription" TEXT NOT NULL,
-    "websiteUrl" TEXT NOT NULL,
-    "landingPageUrl" TEXT NOT NULL,
-    "offer" TEXT NOT NULL,
-    "cta" TEXT NOT NULL,
-    "targetCountry" TEXT NOT NULL,
-    "targetProvince" TEXT NOT NULL,
-    "targetCity" TEXT NOT NULL,
-    "targetLanguage" TEXT NOT NULL,
-    "aiRequirements" TEXT NOT NULL,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
-  );`,
-  `CREATE UNIQUE INDEX IF NOT EXISTS "CampaignBrief_campaignId_key" ON "CampaignBrief"("campaignId");`,
-  `CREATE TABLE IF NOT EXISTS "CampaignProposal" (
-    "id" TEXT NOT NULL PRIMARY KEY,
-    "campaignId" TEXT NOT NULL,
-    "clientId" TEXT NOT NULL,
-    "clientName" TEXT NOT NULL,
-    "objective" TEXT NOT NULL,
-    "location" TEXT NOT NULL,
-    "recommendedBudgetCAD" REAL NOT NULL,
-    "platform" TEXT NOT NULL,
-    "audienceJson" TEXT NOT NULL,
-    "strategyJson" TEXT NOT NULL,
-    "copyJson" TEXT NOT NULL,
-    "creativesJson" TEXT NOT NULL,
-    "qualityCheckJson" TEXT NOT NULL,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
-  );`,
-  `CREATE UNIQUE INDEX IF NOT EXISTS "CampaignProposal_campaignId_key" ON "CampaignProposal"("campaignId");`,
-  `CREATE TABLE IF NOT EXISTS "AgentRun" (
-    "id" TEXT NOT NULL PRIMARY KEY,
-    "campaignId" TEXT NOT NULL,
-    "agentName" TEXT NOT NULL,
-    "status" TEXT NOT NULL,
-    "outputJson" TEXT,
-    "error" TEXT,
-    "startedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "completedAt" DATETIME
-  );`,
-  `CREATE TABLE IF NOT EXISTS "AuditLog" (
-    "id" TEXT NOT NULL PRIMARY KEY,
-    "timestamp" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "userId" TEXT,
-    "userName" TEXT,
-    "agentName" TEXT,
-    "action" TEXT NOT NULL,
-    "campaignId" TEXT,
-    "campaignName" TEXT,
-    "apiOperation" TEXT,
-    "status" TEXT NOT NULL,
-    "details" TEXT NOT NULL
-  );`,
-  `CREATE TABLE IF NOT EXISTS "AISetting" (
-    "id" TEXT NOT NULL PRIMARY KEY DEFAULT 'default',
-    "strategyProvider" TEXT NOT NULL DEFAULT 'OpenAI',
-    "researchProvider" TEXT NOT NULL DEFAULT 'Gemini',
-    "copyProvider" TEXT NOT NULL DEFAULT 'OpenAI',
-    "imageProvider" TEXT NOT NULL DEFAULT 'OpenAI',
-    "videoProvider" TEXT NOT NULL DEFAULT 'Gemini',
-    "validationProvider" TEXT NOT NULL DEFAULT 'Gemini',
-    "demoMode" BOOLEAN NOT NULL DEFAULT true
-  );`,
-  `CREATE TABLE IF NOT EXISTS "ConnectionStatus" (
-    "id" TEXT NOT NULL PRIMARY KEY DEFAULT 'default',
-    "openAiConnected" BOOLEAN NOT NULL DEFAULT true,
-    "geminiConnected" BOOLEAN NOT NULL DEFAULT true,
-    "googleAdsConnected" BOOLEAN NOT NULL DEFAULT true,
-    "googleAdsCustomerId" TEXT DEFAULT '849-204-9102',
-    "googleAdsAccountName" TEXT DEFAULT 'G1 Sphere Canada Ads'
-  );`,
+
   `CREATE TABLE IF NOT EXISTS "Invitation" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "email" TEXT NOT NULL,
@@ -168,26 +345,7 @@ const SQLITE_INIT_TABLES = [
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" DATETIME NOT NULL
   );`,
-  `CREATE UNIQUE INDEX IF NOT EXISTS "Invitation_passcode_key" ON "Invitation"("passcode");`,
-  `CREATE TABLE IF NOT EXISTS "Task" (
-    "id" TEXT NOT NULL PRIMARY KEY,
-    "title" TEXT NOT NULL,
-    "description" TEXT NOT NULL,
-    "priority" TEXT NOT NULL DEFAULT 'MEDIUM',
-    "status" TEXT NOT NULL DEFAULT 'TODO',
-    "assignedToId" TEXT NOT NULL,
-    "assignedToName" TEXT NOT NULL,
-    "assignedToEmail" TEXT NOT NULL,
-    "assignedById" TEXT NOT NULL,
-    "assignedByName" TEXT NOT NULL,
-    "clientId" TEXT,
-    "clientName" TEXT,
-    "campaignId" TEXT,
-    "campaignName" TEXT,
-    "dueDate" TEXT,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" DATETIME NOT NULL
-  );`
+  `CREATE UNIQUE INDEX IF NOT EXISTS "Invitation_passcode_key" ON "Invitation"("passcode");`
 ];
 
 let tablesEnsured = false;
@@ -203,7 +361,7 @@ export async function ensureSeedData() {
       tablesEnsured = true;
     }
 
-    // 1. Ensure Super Admin (Aman Sir)
+    // 1. Ensure Super Admin (Aman Sir - Sole Super Admin)
     await prisma.user.upsert({
       where: { email: 'aman@codekap.com' },
       update: {
@@ -222,271 +380,89 @@ export async function ensureSeedData() {
       },
     });
 
-    // 2. Ensure Admin / Architect (Harshit Singh)
-    await prisma.user.upsert({
-      where: { email: 'harshitsingh19622@gmail.com' },
-      update: {
-        name: 'Harshit Singh',
-        role: 'ADMIN',
-        title: 'Lead Architect / Admin',
-        avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=harshitsingh19622@gmail.com',
-      },
-      create: {
-        id: 'usr_harshit',
-        name: 'Harshit Singh',
-        email: 'harshitsingh19622@gmail.com',
-        role: 'ADMIN',
-        title: 'Lead Architect / Admin',
-        avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=harshitsingh19622@gmail.com',
-      },
+    // 2. Ensure Active Super Admin Passcode (AGENT-7788)
+    const existingInvite = await prisma.invitation.findFirst({
+      where: { passcode: 'AGENT-7788' },
     });
-
-    // 3. Ensure Permanent Client: Jeevansphere
-    const existingClient = await prisma.client.findFirst({
-      where: { name: 'Jeevansphere' },
-    });
-
-    let clientId = existingClient?.id;
-
-    if (!existingClient) {
-      const created = await prisma.client.create({
-        data: {
-          name: 'Jeevansphere',
-          businessName: 'Jeevansphere',
-          clientCode: 'CK-JEEV-2001',
-          website: 'http://jeevansphere.com/',
-          industry: 'Eye Care / Healthcare Platform',
-          country: 'India',
-          province: 'Delhi',
-          city: 'CP, New Delhi',
-          contactName: 'Deepak Yadav',
-          contactEmail: 'jeevansphere@com.in',
-          contactPhone: '9690922001',
-          deploymentUrl: 'http://jeevansphere.com/',
-          githubRepo: 'https://github.com/harshito0/AIMarketing',
-          description: 'jeevanSphere is a purpose-driven platform focused on creating meaningful impact by connecting people, ideas, and opportunities. It aims to build an inclusive ecosystem that supports growth, awareness, and positive social transformation.',
-          brandTone: 'Professional, Modern, High-Converting',
-          logoUrl: 'https://api.dicebear.com/7.x/identicon/svg?seed=Jeevansphere',
-          status: 'ACTIVE',
-        },
-      });
-      clientId = created.id;
-    } else if (!existingClient.clientCode) {
-      await prisma.client.update({
-        where: { id: existingClient.id },
-        data: { clientCode: 'CK-JEEV-2001' },
-      });
-    }
-
-    // 4. Ensure Assigned Tasks from Aman Sir to Harshit Singh
-    const taskCount = await prisma.task.count({
-      where: {
-        OR: [
-          { assignedToEmail: 'harshitsingh19622@gmail.com' },
-          { assignedToEmail: 'harshit@codekap.com' },
-        ],
-      },
-    });
-
-    if (taskCount === 0) {
-      await prisma.task.create({
-        data: {
-          title: 'Design & Launch 3 Eye Care Visual Ads for Jeevansphere',
-          description: 'Create 3 high-converting creative visuals and marketing copy for Jeevansphere clinic targeting eye care consultations. Please review brand tone and launch approval.',
-          priority: 'URGENT',
-          status: 'TODO',
-          assignedToId: 'usr_harshit',
-          assignedToName: 'Harshit Singh',
-          assignedToEmail: 'harshitsingh19622@gmail.com',
-          assignedById: 'usr_aman',
-          assignedByName: 'Aman Sir',
-          clientId: clientId || null,
-          clientName: 'Jeevansphere',
-          dueDate: '2026-08-30',
-        },
-      });
-
-      await prisma.task.create({
-        data: {
-          title: 'Setup & Verify Live Deployment Link & Google Ads Tracking',
-          description: 'Link the GitHub code repository and live deployment URL for Jeevansphere in the Client Business Hub.',
-          priority: 'HIGH',
-          status: 'TODO',
-          assignedToId: 'usr_harshit',
-          assignedToName: 'Harshit Singh',
-          assignedToEmail: 'harshitsingh19622@gmail.com',
-          assignedById: 'usr_aman',
-          assignedByName: 'Aman Sir',
-          clientId: clientId || null,
-          clientName: 'Jeevansphere',
-          dueDate: '2026-09-02',
-        },
-      });
-    }
-
-    // 5. Ensure Default Active Invitation Passcodes for Team Joining
-    const inviteCount = await prisma.invitation.count();
-    if (inviteCount === 0) {
+    if (!existingInvite) {
       const expiresAt = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000); // 90 days
       await prisma.invitation.create({
         data: {
-          email: 'harshitsingh19622@gmail.com',
-          name: 'Harshit Singh',
+          email: 'admin@codekap.com',
+          name: 'Workspace Joining Invite',
           role: 'ADMIN',
           passcode: 'AGENT-7788',
-          status: 'ACCEPTED',
-          invitedBy: 'usr_aman',
-          invitedByName: 'Aman Sir',
-          message: 'Welcome to Agent AI Marketing Team!',
-          expiresAt,
-        },
-      });
-
-      await prisma.invitation.create({
-        data: {
-          email: 'team@codekap.com',
-          name: 'Colleague Invite',
-          role: 'TEAM_MEMBER',
-          passcode: 'AGENT-4819',
           status: 'PENDING',
           invitedBy: 'usr_aman',
           invitedByName: 'Aman Sir',
-          message: 'Join the Codekap marketing workspace.',
+          message: 'Official joining passcode for Codekap marketing workspace.',
           expiresAt,
         },
       });
     }
 
-    // 6. Ensure Sample Campaign & Creatives for Jeevansphere
-    const campCount = await prisma.campaign.count();
-    if (campCount === 0 && clientId) {
-      const sampleCampaign = await prisma.campaign.create({
-        data: {
-          name: 'Jeevansphere — Delhi Eye Care Consultation Ads',
-          clientId: clientId,
-          objective: 'LEAD_GENERATION',
-          platform: 'Google Ads',
-          location: 'Delhi, India',
-          dailyBudget: 75,
-          totalBudget: 2250,
-          currency: 'CAD',
-          status: 'ACTIVE',
-          startDate: new Date().toISOString().split('T')[0],
-          endDate: new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0],
-          metricsSpend: 420.5,
-          metricsImpressions: 14200,
-          metricsClicks: 890,
-          metricsCtr: 6.27,
-          metricsCpc: 0.47,
-          metricsConversions: 48,
-          metricsCpa: 8.76,
-          metricsConvRate: 5.39,
-          aiInsight: 'Strong campaign engagement in Delhi region. Video storyboards driving 3.2x higher consultation bookings.',
-          proposal: {
-            create: {
-              clientId: clientId,
-              clientName: 'Jeevansphere',
-              objective: 'LEAD_GENERATION',
-              location: 'Delhi, India',
-              recommendedBudgetCAD: 75,
-              platform: 'Google Ads',
-              audienceJson: JSON.stringify({
-                primaryAudience: 'Adults 25-55 seeking laser vision correction & comprehensive eye health checkups',
-                secondaryAudience: 'Working professionals with digital eye strain in Delhi NCR',
-                demographics: { ageRange: '25-55', gender: 'All', incomeBracket: 'Middle to High' },
-              }),
-              strategyJson: JSON.stringify({
-                coreMessage: 'World-Class Precision Eye Care & Vision Consultation in Delhi',
-                valueProposition: 'Regain Clear Vision with Certified Specialists & Advanced Technology',
-                angle: 'Trust, Medical Excellence & Immediate Relief',
-                recommendedChannel: 'Google Search & Meta Reels',
-              }),
-              copyJson: JSON.stringify({
-                headlines: [
-                  'Top-Rated Eye Care Clinic in Delhi | Jeevansphere',
-                  'Advanced Laser Vision Correction | Book Today',
-                  'Experience Clear, Strain-Free Sight'
-                ],
-                descriptions: [
-                  'Consult with premier ophthalmology specialists in CP, New Delhi. Advanced diagnostic equipment and compassionate care.',
-                  'Comprehensive vision checkups and specialized eye care treatment. Schedule your private appointment today.'
-                ],
-              }),
-              creativesJson: JSON.stringify([
-                {
-                  id: 'crt_jeev_01',
-                  title: 'Precision Optical Care Specialist Consultation',
-                  visualDirection: 'Modern clean clinic setting with advanced diagnostic eye examination equipment',
-                  imagePrompt: 'Professional optometrist examining patient eyes with modern diagnostic slit lamp equipment in clean aesthetic clinic, 8k commercial photography',
-                  videoPrompt: 'Optometrist examining a patients eyes in a modern optical clinic',
-                  storyboard: [
-                    'Scene 1: Hook — Blurry vision or screen strain affecting daily work',
-                    'Scene 2: Precision examination at Jeevansphere Clinic',
-                    'Scene 3: Expert ophthalmologist explaining treatment options',
-                    'Scene 4: CTA: Book Comprehensive Consultation Today'
-                  ],
-                  generatedImageUrl: 'https://images.unsplash.com/photo-1579684385127-1ef15d508118?w=1200&auto=format&fit=crop&q=85',
-                  generatedVideoUrl: 'https://assets.mixkit.co/videos/preview/mixkit-optometrist-examining-a-patients-eyes-41581-large.mp4',
-                  hookText: 'Clear Sight, Confident Living in Delhi'
-                },
-                {
-                  id: 'crt_jeev_02',
-                  title: 'Vision Freedom & Lifestyle Campaign',
-                  visualDirection: 'Happy person enjoying crisp outdoor sights in Delhi landmark',
-                  imagePrompt: 'Smiling confident person looking with clear sharp vision, warm cinematic natural lighting, commercial advertisement quality',
-                  videoPrompt: 'Doctor talking to a patient in a clinic setting with confidence',
-                  storyboard: [
-                    'Scene 1: Tired of switching between glasses and struggling with strain',
-                    'Scene 2: Seamless painless consultation at Jeevansphere',
-                    'Scene 3: Clear vision results and patient satisfaction',
-                    'Scene 4: CTA: Schedule Your Visit at Jeevansphere'
-                  ],
-                  generatedImageUrl: 'https://images.unsplash.com/photo-1629909613654-28e377c37b09?w=1200&auto=format&fit=crop&q=85',
-                  generatedVideoUrl: 'https://assets.mixkit.co/videos/preview/mixkit-doctor-talking-to-a-patient-in-a-clinic-41584-large.mp4',
-                  hookText: 'Experience Exceptional Eye Care Today'
-                }
-              ]),
-              qualityCheckJson: JSON.stringify({
-                status: 'PASS',
-                warnings: [],
-                errors: [],
-                overallScore: 98,
-              }),
-            },
+    // 3. Ensure Core Departments
+    const deptCount = await prisma.department.count();
+    if (deptCount === 0) {
+      await prisma.department.createMany({
+        data: [
+          { name: 'Sales & Business Development', headName: 'Aman Sir', description: 'Lead generation, sales pipeline, quotation negotiation & client onboarding' },
+          { name: 'Development', headName: 'Lead Architect', description: 'Web app development, Next.js architecture, frontend/backend engineering & QA' },
+          { name: 'Digital Marketing', headName: 'Marketing Lead', description: 'SEO, Google Ads, Meta Reels/Banners, performance marketing & creative campaigns' },
+          { name: 'Administration & Management', headName: 'Aman Sir', description: 'Finance, GST invoicing, employee management, SOPs and business reporting' },
+        ],
+      });
+    }
+
+    // 4. Ensure Core SOP Templates
+    const sopCount = await prisma.sOP.count();
+    if (sopCount === 0) {
+      await prisma.sOP.createMany({
+        data: [
+          {
+            code: 'SOP-DEV-01',
+            title: 'Fullstack Web Application Development SOP',
+            department: 'Development',
+            service: 'Custom Web Application',
+            purpose: 'Standardize end-to-end web engineering from requirement SRS to deployment.',
+            instructions: 'Follow standard Next.js + Tailwind + PostgreSQL architecture. Validate responsive layouts, write API tests, and secure role authorizations.',
+            checklistJson: JSON.stringify([
+              '1. Requirement Gathering & SRS Review',
+              '2. UI/UX Wireframing & Design Signoff',
+              '3. Database Schema & Prisma Migration',
+              '4. API Endpoints & Server-Side Security Guard',
+              '5. Frontend Component Assembly & Responsive Layout QA',
+              '6. Client Demo & Feedback Iteration',
+              '7. Production Deployment & Monitoring Setup'
+            ]),
+            requiredProof: 'Live deployment URL + GitHub PR Link + QA Checklist Signoff',
+            expectedDurationHours: 40,
+            responsibleRole: 'EMPLOYEE',
           },
-        },
-      });
-
-      await prisma.creative.create({
-        data: {
-          campaignId: sampleCampaign.id,
-          title: 'Precision Optical Care Specialist Consultation',
-          type: 'IMAGE',
-          provider: 'Gemini',
-          model: 'gemini-3.6-flash',
-          prompt: 'Professional optometrist examining patient eyes with modern diagnostic slit lamp equipment in clean aesthetic clinic',
-          aspectRatio: '4:5',
-          imageUrl: 'https://images.unsplash.com/photo-1579684385127-1ef15d508118?w=1200&auto=format&fit=crop&q=85',
-          status: 'FINAL',
-        },
-      });
-
-      await prisma.creative.create({
-        data: {
-          campaignId: sampleCampaign.id,
-          title: 'Vision Freedom & Lifestyle Campaign',
-          type: 'IMAGE',
-          provider: 'Gemini',
-          model: 'gemini-3.6-flash',
-          prompt: 'Smiling confident person looking with clear sharp vision in natural warm lighting',
-          aspectRatio: '9:16',
-          imageUrl: 'https://images.unsplash.com/photo-1629909613654-28e377c37b09?w=1200&auto=format&fit=crop&q=85',
-          status: 'FINAL',
-        },
+          {
+            code: 'SOP-MKT-01',
+            title: 'Performance Digital Marketing & Google/Meta Ads SOP',
+            department: 'Digital Marketing',
+            service: 'Performance Marketing',
+            purpose: 'Drive predictable lead generation and brand awareness with measurable ROAS.',
+            instructions: 'Create conversion-focused visual creatives, setup UTM campaign tracking, configure conversion pixels, and monitor daily spend vs CPA.',
+            checklistJson: JSON.stringify([
+              '1. Audience Research & Competitor Benchmark',
+              '2. Creative Visual Direction & Copywriting',
+              '3. Conversion Pixel & Conversion Tracking Setup',
+              '4. Campaign Setup in Ads Manager with Daily Budget',
+              '5. A/B Testing Headings and Creatives',
+              '6. Weekly Performance Optimization & CPA Audit',
+              '7. Monthly Client Performance Report'
+            ]),
+            requiredProof: 'Ads Manager Screenshot + Lead Export Sheet + Monthly ROI Dashboard',
+            expectedDurationHours: 20,
+            responsibleRole: 'EMPLOYEE',
+          }
+        ],
       });
     }
   } catch (err) {
     console.warn('[Seed Data Warning]:', err);
   }
 }
-

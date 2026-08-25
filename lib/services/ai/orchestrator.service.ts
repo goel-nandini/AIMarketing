@@ -402,13 +402,13 @@ CRITICAL RULE: Never invent medical guarantees, 100% safe claims, or risk-free s
         });
 
         try {
-          const bannerUrl = await generateCreativeBanner({
+          const bannerResult = await generateCreativeBanner({
             prompt: c.imagePrompt || `${brief.productService} in ${brief.targetCity}`,
             aspectRatio: idx === 0 ? '4:5' : '9:16',
             campaignTitle: c.title,
             clientName: brief.productService,
           });
-          return { ...c, generatedImageUrl: bannerUrl, generatedVideoUrl: videoUrl };
+          return { ...c, generatedImageUrl: bannerResult.imageUrl, generatedVideoUrl: videoUrl };
         } catch {
           return {
             ...c,
