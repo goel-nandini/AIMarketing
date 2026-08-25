@@ -2,7 +2,6 @@ import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
-import { getAnalytics, isSupported } from 'firebase/analytics';
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || 'AIzaSyAR01Bqtu8GwaG-nXd3Zluf2XUXSjSFF7o',
@@ -20,15 +19,5 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 const storage = getStorage(app);
 
-// Safe Analytics initialization for browser environment
-let analytics: any = null;
-if (typeof window !== 'undefined') {
-  isSupported().then((supported) => {
-    if (supported) {
-      analytics = getAnalytics(app);
-    }
-  }).catch(() => null);
-}
-
-export { app, auth, db, storage, analytics };
+export { app, auth, db, storage };
 
