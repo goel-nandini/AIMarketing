@@ -269,3 +269,84 @@ export async function recordAuditLog(event: {
 
   return log;
 }
+
+// Memory and Firestore Task Store
+const memoryTaskMap = new Map<string, any>();
+
+export async function createTaskInFirestore(taskData: any): Promise<any> {
+  const taskId = taskData.id || `tsk_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+  const task = {
+    ...taskData,
+    id: taskId,
+    createdAt: taskData.createdAt || new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+
+  memoryTaskMap.set(taskId, task);
+
+  if (adminFirestore) {
+    try {
+      await adminFirestore.collection('tasks').doc(taskId).set(task);
+    } catch (err: any) {
+      console.warn('[Firestore createTask Warning]:', err?.message);
+    }
+  }
+
+  return task;
+}
+
+export async function getTasksFromFirestore(filterUserId?: string, filterEmail?: string): Promise<any[]> {
+  let results: any[] = [];
+
+  if (adminFirestore) {
+    try {
+      let taskQuery: any = adminFirestore.collection('tasks').orderBy('createdAt', 'desc');
+      if (filterUserId) {
+        taskQuery = taskQuery.where('assignedToId', '==', filterUserId);
+      }
+      const snap = await taskQuery.get();
+      if (!snap.empty) {
+        results = snap.docs.map((d: any) => d.data());
+      }
+    } catch {}
+  }
+
+  if (results.length === 0) {
+    results = Array.from(memoryTaskMap.values());
+    if (filterUserId || filterEmail) {
+      results = results.filter((t) => 
+        (filterUserId && (t.assignedToId === filterUserId || t.assignedToEmail === filterUserId)) ||
+        (filterEmail && t.assignedToEmail?.toLowerCase() === filterEmail.toLowerCase())
+      );
+    }
+  }
+
+  return results;
+}
+
+export async function updateTaskInFirestore(taskId: string, updates: any): Promise<void> {
+  const existing = memoryTaskMap.get(taskId);
+  if (existing) {
+    memoryTaskMap.set(taskId, { ...existing, ...updates, updatedAt: new Date().toISOString() });
+  }
+
+  if (adminFirestore) {
+    try {
+      await adminFirestore.collection('tasks').doc(taskId).update({
+        ...updates,
+        updatedAt: new Date().toISOString(),
+      });
+    } catch {}
+  }
+}
+
+export async function deleteTaskInFirestore(taskId: string): Promise<void> {
+  memoryTaskMap.delete(taskId);
+
+  if (adminFirestore) {
+    try {
+      await adminFirestore.collection('tasks').doc(taskId).delete();
+    } catch {}
+  }
+}
+

@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { verifyServerAuth } from '@/lib/auth/server-auth';
 import { TaskPriority, TaskStatus } from '@/lib/types';
 import { ensureSeedData } from '@/lib/seed';
+import { createTaskInFirestore } from '@/lib/firebase/firestore-service';
 import nodemailer from 'nodemailer';
 
 export const dynamic = 'force-dynamic';
@@ -14,7 +15,10 @@ export async function GET(req: Request) {
 
     const authResult = await verifyServerAuth(req);
     if (!authResult.authenticated || !authResult.user) {
-      return NextResponse.json({ error: authResult.error }, { status: authResult.statusCode || 401 });
+      return NextResponse.json(
+        { error: authResult.error || 'Authentication required to view tasks.' },
+        { status: authResult.statusCode || 401 }
+      );
     }
 
     const { searchParams } = new URL(req.url);
@@ -24,7 +28,7 @@ export async function GET(req: Request) {
     const all = searchParams.get('all') === 'true';
 
     const currentUser = authResult.user;
-    const isSuper = currentUser.role === 'ADMIN';
+    const isSuper = currentUser.role === 'ADMIN' || currentUser.email === 'aman@codekap.com';
 
     const whereClause: any = {};
 
@@ -50,7 +54,7 @@ export async function GET(req: Request) {
       whereClause.OR = orConditions;
     }
 
-    if (filterStatus) {
+    if (filterStatus && filterStatus !== 'ALL') {
       whereClause.status = filterStatus;
     }
 
@@ -62,18 +66,23 @@ export async function GET(req: Request) {
     return NextResponse.json(tasks);
   } catch (error: any) {
     console.error('[Tasks GET Error]:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: error.message || 'Failed to retrieve tasks.' }, { status: 500 });
   }
 }
 
 export async function POST(req: Request) {
   try {
+    await ensureSeedData();
+
     const authResult = await verifyServerAuth(req);
     if (!authResult.authenticated || !authResult.user) {
-      return NextResponse.json({ error: authResult.error }, { status: authResult.statusCode || 401 });
+      return NextResponse.json(
+        { error: authResult.error || 'Authentication required to assign tasks.' },
+        { status: authResult.statusCode || 401 }
+      );
     }
 
-    const body = await req.json();
+    const body = await req.json().catch(() => ({}));
     const {
       title,
       description,
@@ -88,26 +97,32 @@ export async function POST(req: Request) {
       dueDate,
     } = body;
 
+    // Validation
     if (!title || !title.trim()) {
       return NextResponse.json({ error: 'Task title is required.' }, { status: 400 });
     }
 
     if (!assignedToEmail || !assignedToEmail.trim()) {
-      return NextResponse.json({ error: 'Assignee email is required.' }, { status: 400 });
+      return NextResponse.json({ error: 'Please select a team member or enter an assignee email.' }, { status: 400 });
     }
 
-    let assignedById = authResult?.user?.uid || req.headers.get('X-User-Id') || 'usr_aman';
-    let assignedByName = authResult?.user?.name || req.headers.get('X-User-Name') || 'Super Admin';
+    const cleanEmail = assignedToEmail.toLowerCase().trim();
+    const cleanTitle = title.trim();
+    const cleanDescription = (description || '').trim();
+    const assignedById = authResult.user.uid || 'usr_aman';
+    const assignedByName = authResult.user.name || 'Super Admin';
+    const resolvedName = assignedToName || cleanEmail.split('@')[0];
 
+    // 1. Create in Prisma DB
     const newTask = await prisma.task.create({
       data: {
-        title: title.trim(),
-        description: (description || '').trim(),
+        title: cleanTitle,
+        description: cleanDescription,
         priority: (priority as TaskPriority) || 'MEDIUM',
         status: 'TODO',
-        assignedToId: assignedToId || assignedToEmail.toLowerCase().trim(),
-        assignedToName: assignedToName || assignedToEmail.split('@')[0],
-        assignedToEmail: assignedToEmail.toLowerCase().trim(),
+        assignedToId: assignedToId || cleanEmail,
+        assignedToName: resolvedName,
+        assignedToEmail: cleanEmail,
         assignedById,
         assignedByName,
         clientId: clientId || null,
@@ -118,7 +133,30 @@ export async function POST(req: Request) {
       },
     });
 
-    // Record audit log safely
+    // 2. Dual-write to Firestore asynchronously
+    try {
+      await createTaskInFirestore({
+        id: newTask.id,
+        title: newTask.title,
+        description: newTask.description,
+        priority: newTask.priority,
+        status: newTask.status,
+        assignedToId: newTask.assignedToId,
+        assignedToName: newTask.assignedToName,
+        assignedToEmail: newTask.assignedToEmail,
+        assignedById: newTask.assignedById,
+        assignedByName: newTask.assignedByName,
+        clientId: newTask.clientId,
+        clientName: newTask.clientName,
+        dueDate: newTask.dueDate,
+        createdAt: newTask.createdAt.toISOString(),
+        updatedAt: newTask.updatedAt.toISOString(),
+      });
+    } catch (fsErr) {
+      console.warn('[Firestore Task Sync notice]:', fsErr);
+    }
+
+    // 3. Record audit log safely
     try {
       await prisma.auditLog.create({
         data: {
@@ -133,10 +171,9 @@ export async function POST(req: Request) {
       console.warn('[Task Audit Log notice]:', auditErr);
     }
 
-    // Send email notification safely
+    // 4. Send email notification safely in background
     if (process.env.SMTP_USER && process.env.SMTP_PASS) {
       try {
-        const { sendInvitationEmail } = await import('@/lib/email/service');
         const isGmail = (process.env.SMTP_HOST || '').includes('gmail') || (process.env.SMTP_USER || '').includes('gmail');
         const transporter = nodemailer.createTransport(
           isGmail
@@ -183,7 +220,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ success: true, task: newTask });
   } catch (error: any) {
     console.error('[Tasks POST Error]:', error);
-    return NextResponse.json({ error: error.message || 'Failed to create task.' }, { status: 500 });
+    return NextResponse.json({ error: error.message || 'Unable to save task. Please try again.' }, { status: 500 });
   }
 }
-

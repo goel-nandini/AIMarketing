@@ -399,17 +399,29 @@ export default function TasksPage() {
               <span className="text-xs text-slate-400 font-medium flex items-center gap-1">
                 <Filter className="w-3.5 h-3.5" /> Filter:
               </span>
-              {(['ALL', 'TODO', 'IN_PROGRESS', 'COMPLETED'] as const).map(st => (
+              {[
+                { id: 'ALL', label: 'All', count: tasks.length },
+                { id: 'TODO', label: 'To Do', count: tasks.filter(t => t.status === 'TODO').length },
+                { id: 'IN_PROGRESS', label: 'In Progress', count: tasks.filter(t => t.status === 'IN_PROGRESS').length },
+                { id: 'COMPLETED', label: 'Completed', count: tasks.filter(t => t.status === 'COMPLETED').length },
+              ].map(tab => (
                 <button
-                  key={st}
-                  onClick={() => setStatusFilter(st)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150 cursor-pointer btn-press ${
-                    statusFilter === st
+                  key={tab.id}
+                  onClick={() => setStatusFilter(tab.id)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150 cursor-pointer btn-press flex items-center gap-1.5 ${
+                    statusFilter === tab.id
                       ? 'bg-slate-900 text-white font-bold shadow-2xs'
                       : 'text-slate-600 hover:bg-slate-100'
                   }`}
                 >
-                  {st === 'ALL' ? 'All' : st === 'TODO' ? 'To Do' : st === 'IN_PROGRESS' ? 'In Progress' : 'Completed'}
+                  <span>{tab.label}</span>
+                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                    statusFilter === tab.id
+                      ? 'bg-white/20 text-white'
+                      : 'bg-slate-100 text-slate-500'
+                  }`}>
+                    {tab.count}
+                  </span>
                 </button>
               ))}
             </div>
