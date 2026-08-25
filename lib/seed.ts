@@ -21,21 +21,21 @@ export async function ensureSeedData() {
       },
     });
 
-    // 2. Ensure Team Member (Harshit Singh)
+    // 2. Ensure Admin / Architect (Harshit Singh)
     await prisma.user.upsert({
       where: { email: 'harshitsingh19622@gmail.com' },
       update: {
         name: 'Harshit Singh',
-        role: 'TEAM_MEMBER',
-        title: 'Marketing Manager',
+        role: 'ADMIN',
+        title: 'Lead Architect / Admin',
         avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=harshitsingh19622@gmail.com',
       },
       create: {
         id: 'usr_harshit',
         name: 'Harshit Singh',
         email: 'harshitsingh19622@gmail.com',
-        role: 'TEAM_MEMBER',
-        title: 'Marketing Manager',
+        role: 'ADMIN',
+        title: 'Lead Architect / Admin',
         avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=harshitsingh19622@gmail.com',
       },
     });

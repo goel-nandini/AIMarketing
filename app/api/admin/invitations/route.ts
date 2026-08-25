@@ -60,16 +60,10 @@ export async function POST(req: Request) {
 
     const targetEmail = email.toLowerCase().trim();
 
-    // Check if user is already an active registered user
+    // Check if user is registered, but allow passcode generation/reset
     const existingUser = await prisma.user.findUnique({
       where: { email: targetEmail },
     });
-    if (existingUser) {
-      return NextResponse.json(
-        { error: `User with email ${targetEmail} is already a registered team member.` },
-        { status: 400 }
-      );
-    }
 
     // Determine passcode
     let passcode = (customPasscode || '').trim().toUpperCase();
