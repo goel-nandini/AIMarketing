@@ -110,23 +110,28 @@ export async function POST(req: Request) {
       };
     }
 
-    // Fire background email dispatch asynchronously without awaiting or blocking HTTP response
+    // Send invitation email via Gmail SMTP
     const host = req.headers.get('host') || 'localhost:3000';
     const protocol = host.includes('localhost') ? 'http' : 'https';
     const invitationUrl = `${protocol}://${host}/signup?passcode=${encodeURIComponent(passcode)}&email=${encodeURIComponent(targetEmail)}`;
 
-    import('@/lib/email/service')
-      .then(({ sendInvitationEmail }) => {
-        sendInvitationEmail({
-          toEmail: targetEmail,
-          role: role,
-          invitedByName: authResult.user?.name || 'Super Admin',
-          passcode,
-          invitationUrl,
-          message: message ? message.trim() : undefined,
-        }).catch((err) => console.warn('[Async Email Notice]:', err?.message));
-      })
-      .catch(() => null);
+    let emailDelivered = false;
+    let emailInfo = '';
+    try {
+      const { sendInvitationEmail } = await import('@/lib/email/service');
+      const emailRes = await sendInvitationEmail({
+        toEmail: targetEmail,
+        role: role,
+        invitedByName: authResult.user?.name || 'Super Admin',
+        passcode,
+        invitationUrl,
+        message: message ? message.trim() : undefined,
+      });
+      emailDelivered = emailRes.delivered;
+      emailInfo = emailRes.info || '';
+    } catch (err: any) {
+      console.warn('[Email Dispatch Warning]:', err?.message);
+    }
 
     return NextResponse.json({
       success: true,
@@ -139,7 +144,10 @@ export async function POST(req: Request) {
         status: createdInvite.status,
         expiresAt: createdInvite.expiresAt ? new Date(createdInvite.expiresAt).toISOString() : expiresAt.toISOString(),
       },
-      message: `Passcode [${passcode}] generated successfully for ${targetEmail}!`,
+      emailDelivered,
+      message: emailDelivered
+        ? `Invitation email & passcode delivered to ${targetEmail} inbox!`
+        : `Passcode [${passcode}] generated for ${targetEmail}.`,
     });
   } catch (error: any) {
     console.error('[Invitations POST Error]:', error);

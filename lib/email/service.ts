@@ -16,8 +16,9 @@ export interface SendInvitationEmailParams {
 export async function sendInvitationEmail(
   params: SendInvitationEmailParams
 ): Promise<{ success: boolean; delivered: boolean; messageId?: string; info?: string }> {
-  const provider = process.env.EMAIL_PROVIDER || (process.env.SMTP_USER ? 'smtp' : '');
-  const emailFrom = process.env.EMAIL_FROM || process.env.SMTP_USER || 'Agent AI <no-reply@agentai.com>';
+  const smtpUser = process.env.SMTP_USER || 'harshitsingh19622@gmail.com';
+  const smtpPass = process.env.SMTP_PASS || 'gbvqcaojszvhuvei';
+  const emailFrom = process.env.EMAIL_FROM || `Agent AI Marketing <${smtpUser}>`;
 
   const { toEmail, role, invitedByName, passcode, invitationUrl, message } = params;
 
@@ -60,66 +61,30 @@ export async function sendInvitationEmail(
     </div>
   `;
 
-  if (!provider && !process.env.SMTP_USER && !process.env.EMAIL_API_KEY) {
-    console.log(`[Pending Invitation]: To=${toEmail} | Role=${role} | Passcode=${passcode} | Link=${invitationUrl}`);
-    return {
-      success: true,
-      delivered: false,
-      info: 'Email provider not configured in .env. Passcode generated and ready for direct use.',
-    };
-  }
-
   try {
-    const timeoutPromise = new Promise<{ success: boolean; delivered: boolean; info: string }>((resolve) =>
-      setTimeout(() => resolve({ success: true, delivered: false, info: 'Email dispatch timed out safely.' }), 2500)
-    );
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: smtpUser,
+        pass: smtpPass,
+      },
+    });
 
-    const sendPromise = (async () => {
-      if (provider === 'smtp' || process.env.SMTP_HOST || process.env.SMTP_USER) {
-        const isGmail = (process.env.SMTP_HOST || '').includes('gmail') || (process.env.SMTP_USER || '').includes('gmail');
-        
-        const transportConfig: any = isGmail
-          ? {
-              service: 'gmail',
-              auth: {
-                user: process.env.SMTP_USER,
-                pass: process.env.SMTP_PASS,
-              },
-            }
-          : {
-              host: process.env.SMTP_HOST || 'smtp.gmail.com',
-              port: Number(process.env.SMTP_PORT) || 587,
-              secure: process.env.SMTP_SECURE === 'true',
-              connectionTimeout: 2000,
-              greetingTimeout: 2000,
-              socketTimeout: 2500,
-              auth: {
-                user: process.env.SMTP_USER,
-                pass: process.env.SMTP_PASS,
-              },
-            };
+    const info = await transporter.sendMail({
+      from: emailFrom,
+      to: toEmail,
+      subject: `You've been invited to Agent AI by ${invitedByName} [Passcode: ${passcode || 'INVITE'}]`,
+      html: htmlContent,
+    });
 
-        const transporter = nodemailer.createTransport(transportConfig);
-
-        const info = await transporter.sendMail({
-          from: emailFrom,
-          to: toEmail,
-          subject: `You've been invited to Agent AI by ${invitedByName} [Passcode: ${passcode || 'INVITE'}]`,
-          html: htmlContent,
-        });
-
-        return { success: true, delivered: true, messageId: info.messageId };
-      }
-      return { success: true, delivered: false };
-    })();
-
-    return await Promise.race([sendPromise, timeoutPromise]);
+    console.log(`[Gmail Success]: Invitation sent to ${toEmail}. MessageId: ${info.messageId}`);
+    return { success: true, delivered: true, messageId: info.messageId };
   } catch (error: any) {
-    console.warn(`[Email Delivery Note]:`, error.message || error);
+    console.error(`[Gmail Delivery Error]: Failed to send to ${toEmail}:`, error.message || error);
     return {
-      success: true,
+      success: false,
       delivered: false,
-      info: error.message || 'SMTP transmission note',
+      info: error.message || 'SMTP transmission error',
     };
   }
 }
