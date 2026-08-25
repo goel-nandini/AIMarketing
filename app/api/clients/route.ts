@@ -1,6 +1,12 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '../../../lib/prisma';
 
+function generateClientCode(name: string): string {
+  const clean = name.replace(/[^a-zA-Z0-9]/g, '').toUpperCase().slice(0, 4) || 'CLI';
+  const randomNum = Math.floor(1000 + Math.random() * 9000);
+  return `CK-${clean}-${randomNum}`;
+}
+
 export async function GET() {
   try {
     const clients = await prisma.client.findMany({
@@ -16,12 +22,20 @@ export async function POST(req: Request) {
   try {
     const data = await req.json();
 
+    const clientCode = (data.clientCode && data.clientCode.trim())
+      ? data.clientCode.trim().toUpperCase()
+      : generateClientCode(data.name || 'Client');
+
     const newClient = await prisma.client.create({
       data: {
         name: data.name,
         businessName: data.businessName || data.name,
-        website: data.website,
-        industry: data.industry,
+        clientCode: clientCode,
+        githubRepo: data.githubRepo || '',
+        deploymentUrl: data.deploymentUrl || '',
+        status: data.status || 'ACTIVE',
+        website: data.website || '',
+        industry: data.industry || 'General',
         country: data.country || 'Canada',
         province: data.province || 'Ontario',
         city: data.city || 'Toronto',
@@ -37,9 +51,9 @@ export async function POST(req: Request) {
     // Log action
     await prisma.auditLog.create({
       data: {
-        action: `Added new client/business: ${newClient.name}`,
+        action: `Added new client/business: ${newClient.name} [Code: ${newClient.clientCode}]`,
         status: 'SUCCESS',
-        details: `Industry: ${newClient.industry}, Location: ${newClient.city}, ${newClient.country}, Phone: ${newClient.contactPhone || 'N/A'}`,
+        details: `Code: ${newClient.clientCode}, Repo: ${newClient.githubRepo || 'N/A'}, Deployment: ${newClient.deploymentUrl || 'Pending'}, Phone: ${newClient.contactPhone || 'N/A'}`,
       },
     });
 
@@ -62,6 +76,10 @@ export async function PATCH(req: Request) {
       data: {
         ...(updateFields.name && { name: updateFields.name }),
         ...(updateFields.businessName !== undefined && { businessName: updateFields.businessName }),
+        ...(updateFields.clientCode !== undefined && { clientCode: updateFields.clientCode }),
+        ...(updateFields.githubRepo !== undefined && { githubRepo: updateFields.githubRepo }),
+        ...(updateFields.deploymentUrl !== undefined && { deploymentUrl: updateFields.deploymentUrl }),
+        ...(updateFields.status !== undefined && { status: updateFields.status }),
         ...(updateFields.website !== undefined && { website: updateFields.website }),
         ...(updateFields.industry && { industry: updateFields.industry }),
         ...(updateFields.country !== undefined && { country: updateFields.country }),
@@ -78,9 +96,9 @@ export async function PATCH(req: Request) {
 
     await prisma.auditLog.create({
       data: {
-        action: `Updated client/business: ${updatedClient.name}`,
+        action: `Updated client/business: ${updatedClient.name} [Code: ${updatedClient.clientCode}]`,
         status: 'SUCCESS',
-        details: `Updated details for ${updatedClient.name} (Phone: ${updatedClient.contactPhone || 'N/A'})`,
+        details: `Deployment: ${updatedClient.deploymentUrl || 'None'}, Repo: ${updatedClient.githubRepo || 'None'}`,
       },
     });
 
@@ -107,4 +125,3 @@ export async function DELETE(req: Request) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
-

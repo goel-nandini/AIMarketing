@@ -31,12 +31,16 @@ model Client {
   city         String
   contactName  String
   contactEmail String
-  contactPhone String?  @default("")
-  description  String
-  brandTone    String
-  logoUrl      String
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  contactPhone  String?  @default("")
+  clientCode    String?  @default("")
+  githubRepo    String?  @default("")
+  deploymentUrl String?  @default("")
+  status        String?  @default("ACTIVE")
+  description   String
+  brandTone     String
+  logoUrl       String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   campaigns    Campaign[]
 }

@@ -50,6 +50,10 @@ export interface Client {
   id: string;
   name: string;
   businessName: string;
+  clientCode?: string;
+  githubRepo?: string;
+  deploymentUrl?: string;
+  status?: string;
   website: string;
   industry: string;
   country: string;
