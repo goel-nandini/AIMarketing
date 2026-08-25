@@ -1,10 +1,12 @@
 import { NextResponse } from 'next/server';
 import { verifyAdminAuth } from '../../../../lib/auth/server-auth';
 import { prisma } from '../../../../lib/prisma';
+import { ensureSeedData } from '../../../../lib/seed';
 import { UserRole, UserProfile } from '../../../../lib/types';
 
 export async function GET(req: Request) {
   try {
+    await ensureSeedData();
     const authResult = await verifyAdminAuth(req);
     if (!authResult.authenticated) {
       return NextResponse.json({ error: authResult.error }, { status: authResult.statusCode || 403 });

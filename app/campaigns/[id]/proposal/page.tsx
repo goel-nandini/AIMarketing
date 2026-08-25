@@ -425,16 +425,40 @@ export default function CampaignProposalPage() {
 
                   <div className="grid md:grid-cols-2 gap-6">
                     {proposal.creatives?.map((crt, idx) => (
-                      <div key={`vid_${crt.id}_${idx}`} className="rounded-2xl border border-purple-200/80 bg-purple-50/30 p-5 space-y-4">
+                      <div key={`vid_${crt.id}_${idx}`} className="rounded-2xl border border-purple-200/80 bg-purple-50/30 p-5 space-y-4 shadow-2xs">
                         <div className="flex items-center justify-between">
                           <span className="text-xs font-extrabold text-purple-900 flex items-center gap-1.5">
                             <Video className="w-4 h-4 text-purple-600" />
                             <span>{crt.title} (15s Video Concept)</span>
                           </span>
                           <span className="px-2 py-0.5 rounded bg-purple-100 text-purple-800 text-[10px] font-bold">
-                            9:16 Vertical Reel
+                            9:16 Video Reel
                           </span>
                         </div>
+
+                        {/* Video Player Preview */}
+                        {crt.generatedVideoUrl && (
+                          <div className="rounded-xl overflow-hidden bg-black border border-purple-200 relative aspect-video shadow-inner">
+                            <video
+                              src={crt.generatedVideoUrl}
+                              controls
+                              playsInline
+                              preload="metadata"
+                              className="w-full h-full object-cover"
+                            />
+                            <div className="absolute top-2 right-2 flex gap-1">
+                              <a
+                                href={crt.generatedVideoUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                                download
+                                className="px-2 py-1 rounded bg-slate-900/80 hover:bg-slate-900 text-white text-[10px] font-bold backdrop-blur-xs flex items-center gap-1"
+                              >
+                                <span>Download Clip</span>
+                              </a>
+                            </div>
+                          </div>
+                        )}
 
                         <div className="space-y-2">
                           <span className="text-[10px] font-bold uppercase text-purple-800 tracking-wider">Scene-by-Scene Storyboard:</span>

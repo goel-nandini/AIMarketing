@@ -2,7 +2,7 @@ import { openAIService } from './openai.service';
 import { geminiService } from './gemini.service';
 import { firestoreService } from '../db/firestore.service';
 import { prisma } from '../../prisma';
-import { generateCreativeBanner } from '../media/creative-banner-generator';
+import { generateCreativeBanner, generateCreativeVideo } from '../media/creative-banner-generator';
 import { 
   CampaignBrief, 
   StructuredResearch,
@@ -392,9 +392,15 @@ CRITICAL RULE: Never invent medical guarantees, 100% safe claims, or risk-free s
       ];
     }
 
-    // Generate live dynamic AI creative banners for each concept
+    // Generate live dynamic AI creative banners and video previews for each concept
     const renderedConcepts: CreativeConcept[] = await Promise.all(
       output.map(async (c, idx) => {
+        const videoUrl = generateCreativeVideo({
+          prompt: c.videoPrompt || c.imagePrompt || brief.productService,
+          clientName: brief.productService,
+          campaignTitle: c.title,
+        });
+
         try {
           const bannerUrl = await generateCreativeBanner({
             prompt: c.imagePrompt || `${brief.productService} in ${brief.targetCity}`,
@@ -402,11 +408,12 @@ CRITICAL RULE: Never invent medical guarantees, 100% safe claims, or risk-free s
             campaignTitle: c.title,
             clientName: brief.productService,
           });
-          return { ...c, generatedImageUrl: bannerUrl };
+          return { ...c, generatedImageUrl: bannerUrl, generatedVideoUrl: videoUrl };
         } catch {
           return {
             ...c,
-            generatedImageUrl: `https://images.unsplash.com/photo-${idx === 0 ? '1579684385127-1ef15d508118' : '1506126613408-eca07ce68773'}?w=800&auto=format&fit=crop&q=80`
+            generatedImageUrl: `https://images.unsplash.com/photo-${idx === 0 ? '1579684385127-1ef15d508118' : '1506126613408-eca07ce68773'}?w=800&auto=format&fit=crop&q=80`,
+            generatedVideoUrl: videoUrl,
           };
         }
       })

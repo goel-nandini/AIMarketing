@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { prisma } from '@/lib/prisma';
+import { ensureSeedData } from '@/lib/seed';
 import { verifyAdminAuth } from '../../../../lib/auth/server-auth';
 import { UserRole } from '../../../../lib/types';
 
@@ -13,6 +14,7 @@ function generatePasscode(): string {
 
 export async function GET(req: Request) {
   try {
+    await ensureSeedData();
     const authResult = await verifyAdminAuth(req);
     if (!authResult.authenticated) {
       return NextResponse.json({ error: authResult.error }, { status: authResult.statusCode || 403 });

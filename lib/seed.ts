@@ -122,6 +122,39 @@ export async function ensureSeedData() {
         },
       });
     }
+
+    // 5. Ensure Default Active Invitation Passcodes for Team Joining
+    const inviteCount = await prisma.invitation.count();
+    if (inviteCount === 0) {
+      const expiresAt = new Date(Date.now() + 60 * 24 * 60 * 60 * 1000); // 60 days
+      await prisma.invitation.create({
+        data: {
+          email: 'harshitsingh19622@gmail.com',
+          name: 'Harshit Singh',
+          role: 'MANAGER',
+          passcode: 'AGENT-7788',
+          status: 'ACCEPTED',
+          invitedBy: 'usr_aman',
+          invitedByName: 'Aman Sir',
+          message: 'Welcome to Agent AI Marketing Team!',
+          expiresAt,
+        },
+      });
+
+      await prisma.invitation.create({
+        data: {
+          email: 'team@codekap.com',
+          name: 'Colleague Invite',
+          role: 'TEAM_MEMBER',
+          passcode: 'AGENT-4819',
+          status: 'PENDING',
+          invitedBy: 'usr_aman',
+          invitedByName: 'Aman Sir',
+          message: 'Join the Codekap marketing workspace.',
+          expiresAt,
+        },
+      });
+    }
   } catch (err) {
     console.warn('[Seed Data Warning]:', err);
   }
