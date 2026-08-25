@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { DashboardLayout } from '../../components/dashboard-layout';
 import { AuthGuard } from '../../components/auth-guard';
 import { useAuth } from '../../lib/auth/auth-context';
@@ -20,7 +20,9 @@ import {
   Sparkles,
   ChevronRight,
   Filter,
-  Check
+  Check,
+  Send,
+  X
 } from 'lucide-react';
 
 export default function TasksPage() {
@@ -31,6 +33,7 @@ export default function TasksPage() {
   const [teamUsers, setTeamUsers] = useState<UserProfile[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
 
@@ -50,10 +53,30 @@ export default function TasksPage() {
     dueDate: '',
   });
 
-  const fetchTasks = async () => {
+  const getAuthHeaders = async (): Promise<Record<string, string>> => {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'X-User-Id': profile?.uid || authUser?.uid || 'usr_aman',
+      'X-User-Email': profile?.email || authUser?.email || 'aman@codekap.com',
+      'X-User-Role': role || 'ADMIN',
+    };
     try {
+      if (authUser) {
+        const token = await authUser.getIdToken();
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
+        }
+      }
+    } catch {}
+    return headers;
+  };
+
+  const fetchTasks = useCallback(async (isManual = false) => {
+    if (isManual) setRefreshing(true);
+    setError('');
+    try {
+      const headers = await getAuthHeaders();
       const effectiveUserId = profile?.uid || authUser?.uid || 'usr_aman';
-      const headers = { 'X-User-Id': effectiveUserId };
 
       const url = (isSuperOrManager && activeTab === 'team')
         ? '/api/tasks?all=true'
@@ -65,32 +88,46 @@ export default function TasksPage() {
         fetch('/api/clients', { headers }),
       ]);
 
-      if (taskRes.ok) {
-        const data = await taskRes.json();
-        if (Array.isArray(data)) {
-          setTasks(data);
-        }
+      let taskJson: any = null;
+      try {
+        const text = await taskRes.text();
+        taskJson = text ? JSON.parse(text) : null;
+      } catch {}
+
+      if (taskRes.ok && taskJson && Array.isArray(taskJson)) {
+        setTasks(taskJson);
       }
-      if (userRes.ok) {
-        const uData = await userRes.json();
-        if (Array.isArray(uData)) {
-          setTeamUsers(uData);
-        }
+
+      let userJson: any = null;
+      try {
+        const text = await userRes.text();
+        userJson = text ? JSON.parse(text) : null;
+      } catch {}
+
+      if (userRes.ok && userJson && Array.isArray(userJson)) {
+        setTeamUsers(userJson);
       }
-      if (clientRes.ok) {
-        const cData = await clientRes.json();
-        if (Array.isArray(cData)) {
-          setClients(cData);
-        }
+
+      let clientJson: any = null;
+      try {
+        const text = await clientRes.text();
+        clientJson = text ? JSON.parse(text) : null;
+      } catch {}
+
+      if (clientRes.ok && clientJson && Array.isArray(clientJson)) {
+        setClients(clientJson);
       }
     } catch (err: any) {
-      console.warn('Tasks note: Using fallback baseline', err);
+      console.warn('[Tasks fetch notice]:', err?.message);
+    } finally {
+      setLoading(false);
+      if (isManual) setRefreshing(false);
     }
-  };
+  }, [activeTab, profile, authUser, isSuperOrManager]);
 
   useEffect(() => {
     fetchTasks();
-  }, [activeTab, profile]);
+  }, [fetchTasks]);
 
   const handleCreateTask = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -117,16 +154,19 @@ export default function TasksPage() {
         dueDate: newTask.dueDate || undefined,
       };
 
+      const headers = await getAuthHeaders();
       const res = await fetch('/api/tasks', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-User-Id': effectiveUserId,
-        },
+        headers,
         body: JSON.stringify(payload),
       });
 
-      const data = await res.json();
+      let data: any = {};
+      try {
+        const text = await res.text();
+        data = text ? JSON.parse(text) : {};
+      } catch {}
+
       if (res.ok) {
         const createdTaskRecord: Task = data.task || {
           id: `tsk_${Date.now()}`,
@@ -163,21 +203,16 @@ export default function TasksPage() {
 
   const handleStatusChange = async (taskId: string, newStatus: TaskStatus) => {
     try {
-      const effectiveUserId = profile?.uid || authUser?.uid || 'usr_aman';
-      const res = await fetch(`/api/tasks/${taskId}`, {
+      const headers = await getAuthHeaders();
+      setTasks(prev =>
+        prev.map(t => (t.id === taskId ? { ...t, status: newStatus } : t))
+      );
+
+      await fetch(`/api/tasks/${taskId}`, {
         method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-User-Id': effectiveUserId,
-        },
+        headers,
         body: JSON.stringify({ status: newStatus }),
       });
-
-      if (res.ok) {
-        setTasks(prev =>
-          prev.map(t => (t.id === taskId ? { ...t, status: newStatus } : t))
-        );
-      }
     } catch (err) {
       console.error('Error updating task status:', err);
     }
@@ -186,15 +221,13 @@ export default function TasksPage() {
   const handleDeleteTask = async (taskId: string) => {
     if (!confirm('Are you sure you want to delete this task?')) return;
     try {
-      const effectiveUserId = profile?.uid || authUser?.uid || 'usr_aman';
-      const res = await fetch(`/api/tasks/${taskId}`, {
-        method: 'DELETE',
-        headers: { 'X-User-Id': effectiveUserId },
-      });
+      const headers = await getAuthHeaders();
+      setTasks(prev => prev.filter(t => t.id !== taskId));
 
-      if (res.ok) {
-        setTasks(prev => prev.filter(t => t.id !== taskId));
-      }
+      await fetch(`/api/tasks/${taskId}`, {
+        method: 'DELETE',
+        headers,
+      });
     } catch (err) {
       console.error('Error deleting task:', err);
     }
@@ -223,7 +256,7 @@ export default function TasksPage() {
   return (
     <AuthGuard>
       <DashboardLayout>
-        <div className="space-y-6">
+        <div className="space-y-6 animate-fade-in">
           {/* Header */}
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
@@ -240,10 +273,19 @@ export default function TasksPage() {
             </div>
 
             <div className="flex items-center gap-3">
+              <button
+                onClick={() => fetchTasks(true)}
+                disabled={refreshing}
+                className="p-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 transition-all shadow-2xs cursor-pointer btn-press"
+                title="Refresh tasks"
+              >
+                <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin text-blue-600' : ''}`} />
+              </button>
+
               {isSuperOrManager && (
                 <button
                   onClick={() => setIsModalOpen(true)}
-                  className="px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-md shadow-blue-600/20 flex items-center gap-2 transition-all hover:scale-[1.01]"
+                  className="px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-md shadow-blue-600/20 flex items-center gap-2 transition-all cursor-pointer btn-press"
                 >
                   <Plus className="w-4 h-4" />
                   <span>Assign Task to Member</span>
@@ -254,24 +296,24 @@ export default function TasksPage() {
 
           {/* Feedback messages */}
           {error && (
-            <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-medium flex items-center gap-2">
+            <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-medium flex items-center gap-2 animate-fade-in">
               <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
               <span>{error}</span>
             </div>
           )}
           {successMessage && (
-            <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-medium flex items-center gap-2">
+            <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-medium flex items-center gap-2 animate-fade-in">
               <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600" />
               <span>{successMessage}</span>
             </div>
           )}
 
           {/* Top Control Tabs & Filters */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-3 rounded-2xl border border-slate-200 shadow-2xs">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-3 rounded-2xl border border-slate-200 shadow-2xs card-lift">
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setActiveTab('my')}
-                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all duration-150 cursor-pointer btn-press ${
                   activeTab === 'my'
                     ? 'bg-blue-600 text-white shadow-2xs'
                     : 'text-slate-600 hover:bg-slate-50'
@@ -283,7 +325,7 @@ export default function TasksPage() {
               {isSuperOrManager && (
                 <button
                   onClick={() => setActiveTab('team')}
-                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all duration-150 cursor-pointer btn-press ${
                     activeTab === 'team'
                       ? 'bg-blue-600 text-white shadow-2xs'
                       : 'text-slate-600 hover:bg-slate-50'
@@ -302,9 +344,9 @@ export default function TasksPage() {
                 <button
                   key={st}
                   onClick={() => setStatusFilter(st)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150 cursor-pointer btn-press ${
                     statusFilter === st
-                      ? 'bg-slate-900 text-white font-bold'
+                      ? 'bg-slate-900 text-white font-bold shadow-2xs'
                       : 'text-slate-600 hover:bg-slate-100'
                   }`}
                 >
@@ -315,11 +357,15 @@ export default function TasksPage() {
           </div>
 
           {/* Task List Table / Grid */}
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-hidden">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-hidden card-lift">
             {loading ? (
-              <div className="p-12 text-center text-xs text-slate-400 flex items-center justify-center gap-2">
-                <RefreshCw className="w-4 h-4 animate-spin text-blue-600" />
-                <span>Loading assigned tasks...</span>
+              <div className="p-8 space-y-4">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="p-4 rounded-xl border border-slate-100 space-y-2">
+                    <div className="h-4 w-48 rounded skeleton-shimmer" />
+                    <div className="h-3 w-72 rounded skeleton-shimmer" />
+                  </div>
+                ))}
               </div>
             ) : filteredTasks.length === 0 ? (
               <div className="p-12 text-center space-y-3">
@@ -338,7 +384,7 @@ export default function TasksPage() {
                   <div className="pt-2">
                     <button
                       onClick={() => setIsModalOpen(true)}
-                      className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-md shadow-blue-600/20"
+                      className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-md shadow-blue-600/20 cursor-pointer btn-press"
                     >
                       <Plus className="w-4 h-4" />
                       <span>Assign First Task</span>
@@ -355,7 +401,7 @@ export default function TasksPage() {
                   return (
                     <div
                       key={task.id}
-                      className={`p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 transition-colors hover:bg-slate-50/70 ${
+                      className={`p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 transition-colors hover:bg-slate-50/70 animate-fade-in ${
                         isCompleted ? 'bg-slate-50/40 opacity-80' : ''
                       }`}
                     >
@@ -365,7 +411,7 @@ export default function TasksPage() {
                           onClick={() =>
                             handleStatusChange(task.id, isCompleted ? 'TODO' : 'COMPLETED')
                           }
-                          className={`w-5 h-5 rounded-lg border flex items-center justify-center mt-0.5 transition-all ${
+                          className={`w-5 h-5 rounded-lg border flex items-center justify-center mt-0.5 transition-all cursor-pointer btn-press ${
                             isCompleted
                               ? 'bg-emerald-600 border-emerald-600 text-white'
                               : isInProgress
@@ -438,7 +484,7 @@ export default function TasksPage() {
                         <select
                           value={task.status}
                           onChange={(e) => handleStatusChange(task.id, e.target.value as TaskStatus)}
-                          className="text-xs font-semibold p-2 rounded-xl border border-slate-200 bg-white text-slate-700 focus:ring-2 focus:ring-blue-600"
+                          className="text-xs font-semibold p-2 rounded-xl border border-slate-200 bg-white text-slate-700 focus:ring-2 focus:ring-blue-600 cursor-pointer"
                         >
                           <option value="TODO">To Do</option>
                           <option value="IN_PROGRESS">In Progress</option>
@@ -449,7 +495,7 @@ export default function TasksPage() {
                         {isSuperOrManager && (
                           <button
                             onClick={() => handleDeleteTask(task.id)}
-                            className="p-2 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+                            className="p-2 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer btn-press"
                             title="Delete Task"
                           >
                             <Trash2 className="w-4 h-4" />
@@ -466,8 +512,8 @@ export default function TasksPage() {
 
         {/* Modal: Assign Task to Member */}
         {isModalOpen && (
-          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 overflow-y-auto">
-            <div className="bg-white rounded-2xl max-w-lg w-full p-6 md:p-8 border border-slate-200 shadow-2xl space-y-5 my-8">
+          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 overflow-y-auto animate-fade-in">
+            <div className="bg-white rounded-2xl max-w-lg w-full p-6 md:p-8 border border-slate-200 shadow-2xl space-y-5 my-8 card-lift">
               <div className="flex items-center justify-between pb-3 border-b border-slate-100">
                 <div className="flex items-center gap-2.5">
                   <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
@@ -480,9 +526,9 @@ export default function TasksPage() {
                 </div>
                 <button
                   onClick={() => setIsModalOpen(false)}
-                  className="text-slate-400 hover:text-slate-700 p-1 rounded-lg"
+                  className="text-slate-400 hover:text-slate-700 p-1 rounded-lg cursor-pointer btn-press"
                 >
-                  ✕
+                  <X className="w-4 h-4" />
                 </button>
               </div>
 
@@ -495,7 +541,7 @@ export default function TasksPage() {
                     required
                     value={newTask.assignedToEmail}
                     onChange={(e) => setNewTask({ ...newTask, assignedToEmail: e.target.value })}
-                    className="w-full text-xs p-2.5 rounded-xl border border-slate-200 font-medium focus:ring-2 focus:ring-blue-600 text-slate-900"
+                    className="w-full text-xs p-2.5 rounded-xl border border-slate-200 font-medium focus:ring-2 focus:ring-blue-600 text-slate-900 bg-white"
                   >
                     <option value="">-- Select Member --</option>
                     {teamUsers.map(u => (
@@ -539,7 +585,7 @@ export default function TasksPage() {
                     <select
                       value={newTask.priority}
                       onChange={(e) => setNewTask({ ...newTask, priority: e.target.value as TaskPriority })}
-                      className="w-full text-xs p-2.5 rounded-xl border border-slate-200 font-semibold focus:ring-2 focus:ring-blue-600 text-slate-900"
+                      className="w-full text-xs p-2.5 rounded-xl border border-slate-200 font-semibold focus:ring-2 focus:ring-blue-600 text-slate-900 bg-white"
                     >
                       <option value="LOW">Low</option>
                       <option value="MEDIUM">Medium</option>
@@ -566,7 +612,7 @@ export default function TasksPage() {
                   <select
                     value={newTask.clientId}
                     onChange={(e) => setNewTask({ ...newTask, clientId: e.target.value })}
-                    className="w-full text-xs p-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-600 text-slate-900"
+                    className="w-full text-xs p-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-600 text-slate-900 bg-white"
                   >
                     <option value="">-- No Specific Client (General Task) --</option>
                     {clients.map(c => (
@@ -579,21 +625,21 @@ export default function TasksPage() {
 
                 <div className="p-3 bg-blue-50/70 border border-blue-100 rounded-xl text-[11px] text-blue-800 flex items-center gap-2">
                   <Sparkles className="w-4 h-4 text-blue-600 shrink-0" />
-                  <span>An email alert will also be dispatched directly to the team member's inbox.</span>
+                  <span>Task will immediately be synced to the assignee's personal workspace.</span>
                 </div>
 
                 <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
                   <button
                     type="button"
                     onClick={() => setIsModalOpen(false)}
-                    className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100"
+                    className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 cursor-pointer btn-press"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={submitting || !newTask.title.trim() || !newTask.assignedToEmail}
-                    className="px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-md shadow-blue-600/20 flex items-center gap-2 disabled:opacity-60"
+                    className="px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-md shadow-blue-600/20 flex items-center gap-2 disabled:opacity-60 cursor-pointer btn-press"
                   >
                     {submitting ? (
                       <>
@@ -602,7 +648,7 @@ export default function TasksPage() {
                       </>
                     ) : (
                       <>
-                        <CheckSquare className="w-4 h-4" />
+                        <Send className="w-4 h-4" />
                         <span>Assign Task</span>
                       </>
                     )}
