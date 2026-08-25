@@ -12,6 +12,9 @@ function generatePasscode(): string {
   return `${prefix}-${digits}`;
 }
 
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+
 export async function GET(req: Request) {
   try {
     await ensureSeedData();

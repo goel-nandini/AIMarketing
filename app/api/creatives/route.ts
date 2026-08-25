@@ -3,6 +3,9 @@ import { prisma } from '@/lib/prisma';
 import { ensureSeedData } from '@/lib/seed';
 import { generateCreativeBanner } from '@/lib/services/media/creative-banner-generator';
 
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+
 export async function GET(req: Request) {
   try {
     await ensureSeedData();

@@ -5,6 +5,9 @@ import { TaskPriority, TaskStatus } from '@/lib/types';
 import { ensureSeedData } from '@/lib/seed';
 import nodemailer from 'nodemailer';
 
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+
 export async function GET(req: Request) {
   try {
     await ensureSeedData();

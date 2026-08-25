@@ -8,6 +8,9 @@ function generateClientCode(name: string): string {
   return `CK-${clean}-${randomNum}`;
 }
 
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+
 export async function GET() {
   try {
     await ensureSeedData();
