@@ -49,6 +49,47 @@ export async function POST(req: Request) {
   }
 }
 
+export async function PATCH(req: Request) {
+  try {
+    const data = await req.json();
+    const { id, ...updateFields } = data;
+    if (!id) {
+      return NextResponse.json({ error: 'Client ID is required' }, { status: 400 });
+    }
+
+    const updatedClient = await prisma.client.update({
+      where: { id },
+      data: {
+        ...(updateFields.name && { name: updateFields.name }),
+        ...(updateFields.businessName !== undefined && { businessName: updateFields.businessName }),
+        ...(updateFields.website !== undefined && { website: updateFields.website }),
+        ...(updateFields.industry && { industry: updateFields.industry }),
+        ...(updateFields.country !== undefined && { country: updateFields.country }),
+        ...(updateFields.province !== undefined && { province: updateFields.province }),
+        ...(updateFields.city !== undefined && { city: updateFields.city }),
+        ...(updateFields.contactName !== undefined && { contactName: updateFields.contactName }),
+        ...(updateFields.contactEmail !== undefined && { contactEmail: updateFields.contactEmail }),
+        ...(updateFields.contactPhone !== undefined && { contactPhone: updateFields.contactPhone }),
+        ...(updateFields.description !== undefined && { description: updateFields.description }),
+        ...(updateFields.brandTone !== undefined && { brandTone: updateFields.brandTone }),
+        ...(updateFields.logoUrl !== undefined && { logoUrl: updateFields.logoUrl }),
+      },
+    });
+
+    await prisma.auditLog.create({
+      data: {
+        action: `Updated client/business: ${updatedClient.name}`,
+        status: 'SUCCESS',
+        details: `Updated details for ${updatedClient.name} (Phone: ${updatedClient.contactPhone || 'N/A'})`,
+      },
+    });
+
+    return NextResponse.json(updatedClient);
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
+
 export async function DELETE(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
@@ -66,3 +107,4 @@ export async function DELETE(req: Request) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
+

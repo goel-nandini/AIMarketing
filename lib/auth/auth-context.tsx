@@ -31,6 +31,7 @@ interface AuthContextType {
   isEmailVerified: boolean;
   getIdToken: () => Promise<string | null>;
   signIn: (emailOrUsername: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  signInAsSuperAdmin: (pin: string) => Promise<{ success: boolean; error?: string }>;
   signUp: (data: { name: string; username: string; email: string; password: string }) => Promise<{ success: boolean; error?: string }>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ success: boolean; error?: string }>;
@@ -420,6 +421,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const signInAsSuperAdmin = async (pin: string): Promise<{ success: boolean; error?: string }> => {
+    const cleanPin = pin.trim();
+    if (cleanPin !== '090807') {
+      return {
+        success: false,
+        error: 'Invalid Super Admin Verification Code. Access Denied.',
+      };
+    }
+
+    const superAdminProfile: UserProfile = {
+      uid: 'usr_aman',
+      name: 'Aman Sir',
+      email: 'aman@codekap.com',
+      username: 'aman',
+      role: 'ADMIN',
+      status: 'ACTIVE',
+      emailVerified: true,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      lastLoginAt: new Date().toISOString(),
+      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+      title: 'Super Admin / Founder & CEO',
+    };
+
+    setProfile(superAdminProfile);
+    try {
+      localStorage.setItem('agent_ai_user_session', JSON.stringify(superAdminProfile));
+    } catch {}
+
+    return { success: true };
+  };
+
   const refreshProfile = async () => {
     if (clientAuth.currentUser) {
       await fetchProfile(clientAuth.currentUser);
@@ -440,6 +473,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isEmailVerified,
         getIdToken,
         signIn,
+        signInAsSuperAdmin,
         signUp,
         signOut,
         resetPassword,

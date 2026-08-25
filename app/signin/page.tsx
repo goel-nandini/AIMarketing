@@ -4,7 +4,18 @@ import React, { useState, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '../../lib/auth/auth-context';
-import { ArrowRight, Lock, AlertCircle, RefreshCw, Shield, KeyRound, Sparkles } from 'lucide-react';
+import {
+  ArrowRight,
+  Lock,
+  AlertCircle,
+  RefreshCw,
+  Shield,
+  KeyRound,
+  Sparkles,
+  X,
+  CheckCircle2,
+  AlertTriangle
+} from 'lucide-react';
 
 function SignInForm() {
   const router = useRouter();
@@ -12,11 +23,17 @@ function SignInForm() {
   const redirectUrl = searchParams?.get('redirect') || '/dashboard';
   const urlMessage = searchParams?.get('message');
 
-  const { signIn, isAuthenticated, loading: authLoading } = useAuth();
+  const { signIn, signInAsSuperAdmin, isAuthenticated, loading: authLoading } = useAuth();
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  // Super Admin 6-Digit PIN Modal State
+  const [isPinModalOpen, setIsPinModalOpen] = useState(false);
+  const [pinValue, setPinValue] = useState('');
+  const [pinLoading, setPinLoading] = useState(false);
+  const [showInvalidPopup, setShowInvalidPopup] = useState(false);
 
   React.useEffect(() => {
     if (!authLoading && isAuthenticated) {
@@ -48,45 +65,58 @@ function SignInForm() {
     }
   };
 
-  const handleSuperAdminAutoFill = async () => {
-    setIdentifier('aman@codekap.com');
-    setPassword('password123');
-    setLoading(true);
-    const result = await signIn('aman@codekap.com', 'password123');
+  const handleVerifySuperAdminPin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const cleanPin = pinValue.trim();
+
+    if (cleanPin !== '090807') {
+      setShowInvalidPopup(true);
+      return;
+    }
+
+    setPinLoading(true);
+    const result = await signInAsSuperAdmin(cleanPin);
+
     if (result.success) {
+      setIsPinModalOpen(false);
       router.push(redirectUrl);
     } else {
-      setLoading(false);
+      setShowInvalidPopup(true);
     }
+    setPinLoading(false);
   };
 
   return (
     <div className="p-8">
       <div className="mb-6 text-center">
         <h3 className="text-lg font-bold text-slate-900">Sign In to Your Account</h3>
-        <p className="text-xs text-slate-500 mt-1">Access campaign automation, creative engine, and approvals</p>
+        <p className="text-xs text-slate-500 mt-1">Access campaign automation, creative engine, and team controls</p>
       </div>
 
-      {/* 1-Click Super Admin Quick Access */}
+      {/* 1-Click Super Admin Access with 6-Digit Verification */}
       <div className="mb-5 p-3.5 rounded-xl bg-purple-50 border border-purple-200 flex items-center justify-between gap-2 shadow-2xs">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-purple-600 text-white flex items-center justify-center font-bold text-xs">
+          <div className="w-8 h-8 rounded-lg bg-purple-600 text-white flex items-center justify-center font-bold text-xs shadow-xs">
             <Shield className="w-4 h-4" />
           </div>
           <div>
             <div className="flex items-center gap-1.5">
-              <span className="text-xs font-extrabold text-purple-950">Super Admin Mode</span>
-              <span className="text-[9px] px-1.5 py-0.2 rounded bg-purple-200 text-purple-900 font-bold uppercase">Aman Sir</span>
+              <span className="text-xs font-extrabold text-purple-950">Super Admin Access</span>
+              <span className="text-[9px] px-1.5 py-0.2 rounded bg-purple-200 text-purple-900 font-bold uppercase">PIN Protected</span>
             </div>
-            <p className="text-[10px] text-purple-700">Full platform controls & team invite passcodes</p>
+            <p className="text-[10px] text-purple-700">No password required • 6-digit verification</p>
           </div>
         </div>
         <button
           type="button"
-          onClick={handleSuperAdminAutoFill}
-          className="px-3 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-700 text-white font-bold text-[11px] transition-all shadow-xs shrink-0"
+          onClick={() => {
+            setPinValue('');
+            setShowInvalidPopup(false);
+            setIsPinModalOpen(true);
+          }}
+          className="px-3.5 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-[11px] transition-all shadow-sm hover:scale-[1.02] shrink-0"
         >
-          Quick Sign In →
+          Super Admin Sign In →
         </button>
       </div>
 
@@ -113,7 +143,7 @@ function SignInForm() {
             required
             value={identifier}
             onChange={(e) => setIdentifier(e.target.value)}
-            placeholder="e.g. harshit or harshit@codekap.com"
+            placeholder="e.g. harshit or harshitsingh19622@gmail.com"
             className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:bg-white transition-all"
           />
         </div>
@@ -181,6 +211,95 @@ function SignInForm() {
           </Link>
         </p>
       </div>
+
+      {/* Modal: 6-Digit Super Admin PIN Verification */}
+      {isPinModalOpen && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in duration-150">
+          <div className="bg-white rounded-3xl max-w-sm w-full p-6 md:p-8 border border-slate-200 shadow-2xl space-y-5 text-center relative overflow-hidden">
+            <button
+              onClick={() => setIsPinModalOpen(false)}
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-700 p-1.5 rounded-full hover:bg-slate-100 transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            <div className="w-14 h-14 rounded-2xl bg-purple-100 text-purple-700 flex items-center justify-center mx-auto shadow-inner">
+              <Shield className="w-7 h-7" />
+            </div>
+
+            <div>
+              <h3 className="text-lg font-extrabold text-slate-900">Super Admin Verification</h3>
+              <p className="text-xs text-slate-500 mt-1">
+                Enter the 6-digit verification code to unlock root Super Admin privileges.
+              </p>
+            </div>
+
+            <form onSubmit={handleVerifySuperAdminPin} className="space-y-4 pt-2">
+              <div>
+                <input
+                  type="text"
+                  maxLength={6}
+                  autoFocus
+                  required
+                  value={pinValue}
+                  onChange={(e) => setPinValue(e.target.value.replace(/\D/g, ''))}
+                  placeholder="000000"
+                  className="w-full text-center tracking-[12px] font-mono text-2xl font-black py-3 px-4 rounded-2xl border-2 border-purple-300 focus:border-purple-600 focus:outline-none bg-purple-50/50 text-purple-950 shadow-inner"
+                />
+                <span className="text-[10px] text-slate-400 mt-1 block">6-digit numeric verification code</span>
+              </div>
+
+              <div className="flex items-center gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsPinModalOpen(false)}
+                  className="w-1/2 py-2.5 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 border border-slate-200"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={pinLoading || pinValue.length < 6}
+                  className="w-1/2 py-2.5 rounded-xl text-xs font-bold text-white bg-purple-600 hover:bg-purple-700 shadow-md shadow-purple-600/20 disabled:opacity-50 transition-all"
+                >
+                  {pinLoading ? 'Verifying...' : 'Unlock & Sign In'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Invalid Code Alert Popup Modal */}
+      {showInvalidPopup && (
+        <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in zoom-in-95 duration-150">
+          <div className="bg-white rounded-3xl max-w-sm w-full p-6 md:p-7 border border-rose-200 shadow-2xl text-center space-y-4">
+            <div className="w-14 h-14 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center mx-auto">
+              <AlertTriangle className="w-7 h-7" />
+            </div>
+
+            <div className="space-y-1">
+              <h3 className="text-base font-extrabold text-rose-950">Invalid Verification Code</h3>
+              <p className="text-xs text-rose-700 leading-relaxed">
+                Access Denied. The 6-digit Super Admin verification code you entered is invalid.
+              </p>
+            </div>
+
+            <div className="pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowInvalidPopup(false);
+                  setPinValue('');
+                }}
+                className="w-full py-2.5 px-4 rounded-xl text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 shadow-md shadow-rose-600/20 transition-all"
+              >
+                Try Again
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

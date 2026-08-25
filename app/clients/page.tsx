@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { DashboardLayout } from '../../components/dashboard-layout';
 import { Client } from '../../lib/types';
 import { 
@@ -13,17 +13,23 @@ import {
   CheckCircle2,
   RefreshCw,
   Trash2,
+  Edit,
+  Upload,
   Image as ImageIcon,
   Sparkles,
-  ExternalLink
+  ExternalLink,
+  X
 } from 'lucide-react';
 
 export default function ClientsPage() {
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showAddModal, setShowAddModal] = useState(false);
+  const [showModal, setShowModal] = useState(false);
+  const [editingClient, setEditingClient] = useState<Client | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const [formData, setFormData] = useState({
     name: '',
     businessName: '',
@@ -59,7 +65,73 @@ export default function ClientsPage() {
     fetchClients();
   }, []);
 
-  const handleAddClient = async (e: React.FormEvent) => {
+  const openAddModal = () => {
+    setEditingClient(null);
+    setFormData({
+      name: '',
+      businessName: '',
+      website: '',
+      industry: '',
+      country: 'Canada',
+      province: 'Ontario',
+      city: 'Toronto',
+      contactName: '',
+      contactEmail: '',
+      contactPhone: '',
+      logoUrl: '',
+      description: '',
+      brandTone: 'Professional, Modern, High-Converting',
+    });
+    setError('');
+    setShowModal(true);
+  };
+
+  const openEditModal = (client: Client) => {
+    setEditingClient(client);
+    setFormData({
+      name: client.name || '',
+      businessName: client.businessName || '',
+      website: client.website || '',
+      industry: client.industry || '',
+      country: client.country || 'Canada',
+      province: client.province || '',
+      city: client.city || '',
+      contactName: client.contactName || '',
+      contactEmail: client.contactEmail || '',
+      contactPhone: client.contactPhone || '',
+      logoUrl: client.logoUrl || '',
+      description: client.description || '',
+      brandTone: client.brandTone || 'Professional, Modern, High-Converting',
+    });
+    setError('');
+    setShowModal(true);
+  };
+
+  // Handle local file upload from Downloads/PC
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      setError('Please upload a valid image file (.png, .jpg, .svg, .webp).');
+      return;
+    }
+
+    // Convert file to Data URI base64
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      if (event.target?.result) {
+        setFormData((prev) => ({
+          ...prev,
+          logoUrl: event.target?.result as string,
+        }));
+        setError('');
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name.trim()) return;
 
@@ -71,36 +143,26 @@ export default function ClientsPage() {
         logoUrl: formData.logoUrl.trim() || `https://api.dicebear.com/7.x/identicon/svg?seed=${encodeURIComponent(formData.name.trim())}`,
       };
 
-      const res = await fetch('/api/clients', {
-        method: 'POST',
+      const isEdit = !!editingClient;
+      const url = '/api/clients';
+      const method = isEdit ? 'PATCH' : 'POST';
+      const body = isEdit ? JSON.stringify({ id: editingClient.id, ...payload }) : JSON.stringify(payload);
+
+      const res = await fetch(url, {
+        method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+        body,
       });
 
       if (res.ok) {
-        setShowAddModal(false);
-        setFormData({
-          name: '',
-          businessName: '',
-          website: '',
-          industry: '',
-          country: 'Canada',
-          province: 'Ontario',
-          city: 'Toronto',
-          contactName: '',
-          contactEmail: '',
-          contactPhone: '',
-          logoUrl: '',
-          description: '',
-          brandTone: 'Professional, Modern, High-Converting',
-        });
+        setShowModal(false);
         fetchClients();
       } else {
         const d = await res.json();
-        setError(d.error || 'Failed to save client business.');
+        setError(d.error || `Failed to ${isEdit ? 'update' : 'save'} client business.`);
       }
     } catch (err: any) {
-      setError(err.message || 'Error creating client.');
+      setError(err.message || 'Error processing client.');
     } finally {
       setSaving(false);
     }
@@ -126,18 +188,18 @@ export default function ClientsPage() {
           <div>
             <div className="flex items-center gap-2 text-xs font-bold text-blue-600 mb-1">
               <Building2 className="w-4 h-4" />
-              <span>Business & Brand Portfolio</span>
+              <span>Business & Client Profiles</span>
             </div>
             <h1 className="text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight">
-              Business Profiles & Clients
+              Client & Business Management
             </h1>
             <p className="text-sm text-slate-500 font-medium mt-1">
-              Manage client businesses, logos, contact numbers, and targeting parameters for AI marketing campaigns.
+              Manage client businesses, uploaded logos, contact numbers, and target market parameters.
             </p>
           </div>
 
           <button
-            onClick={() => setShowAddModal(true)}
+            onClick={openAddModal}
             className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 transition-all shadow-md shadow-blue-600/20 hover:scale-[1.01]"
           >
             <Plus className="w-4 h-4" />
@@ -159,12 +221,12 @@ export default function ClientsPage() {
             <div className="space-y-1">
               <h3 className="text-base font-bold text-slate-900">No Businesses or Clients Added Yet</h3>
               <p className="text-xs text-slate-500 max-w-md mx-auto">
-                Clean state initialized. Click below to add your first business with logo, phone number, website, and target market.
+                Add your first business profile with custom logo upload, mobile phone number, website, and industry details.
               </p>
             </div>
             <div className="pt-2">
               <button
-                onClick={() => setShowAddModal(true)}
+                onClick={openAddModal}
                 className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-md shadow-blue-600/20"
               >
                 <Plus className="w-4 h-4" />
@@ -177,79 +239,90 @@ export default function ClientsPage() {
             {clients.map((client) => (
               <div
                 key={client.id}
-                className="bg-white rounded-2xl border border-slate-200 p-6 shadow-2xs space-y-4 hover:border-slate-300 transition-all"
+                className="bg-white rounded-2xl border border-slate-200 p-6 shadow-2xs space-y-4 hover:border-slate-300 transition-all flex flex-col justify-between"
               >
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-3">
-                    <img
-                      src={client.logoUrl || `https://api.dicebear.com/7.x/identicon/svg?seed=${encodeURIComponent(client.name)}`}
-                      alt={client.name}
-                      className="w-12 h-12 rounded-xl object-cover border border-slate-200 bg-slate-50 shadow-2xs shrink-0"
-                    />
-                    <div>
-                      <h3 className="text-base font-bold text-slate-900">{client.name}</h3>
-                      <p className="text-xs font-medium text-slate-500">{client.businessName || client.name}</p>
+                <div className="space-y-4">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-3">
+                      <img
+                        src={client.logoUrl || `https://api.dicebear.com/7.x/identicon/svg?seed=${encodeURIComponent(client.name)}`}
+                        alt={client.name}
+                        className="w-14 h-14 rounded-2xl object-cover border border-slate-200 bg-slate-50 shadow-2xs shrink-0"
+                      />
+                      <div>
+                        <h3 className="text-base font-bold text-slate-900">{client.name}</h3>
+                        <p className="text-xs font-medium text-slate-500">{client.businessName || client.name}</p>
+                      </div>
                     </div>
-                  </div>
 
-                  <div className="flex items-center gap-2">
-                    <span className="px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 font-bold text-[11px] border border-blue-100">
-                      {client.country}
-                    </span>
-                    <button
-                      onClick={() => handleDeleteClient(client.id, client.name)}
-                      className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
-                      title="Delete Business"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-
-                {client.description && (
-                  <p className="text-xs text-slate-600 leading-relaxed bg-slate-50 p-3 rounded-xl border border-slate-100 line-clamp-3">
-                    {client.description}
-                  </p>
-                )}
-
-                <div className="grid grid-cols-2 gap-2.5 text-xs">
-                  <div className="flex items-center gap-2 text-slate-600">
-                    <Building2 className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-                    <span className="truncate">{client.industry || 'General Industry'}</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-slate-600">
-                    <MapPin className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-                    <span className="truncate">{client.city}, {client.province}</span>
-                  </div>
-                  {client.website && (
-                    <div className="flex items-center gap-2 text-slate-600">
-                      <Globe className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-                      <a
-                        href={client.website.startsWith('http') ? client.website : `https://${client.website}`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="truncate text-blue-600 hover:underline flex items-center gap-1"
+                    <div className="flex items-center gap-1.5">
+                      <span className="px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 font-bold text-[11px] border border-blue-100 mr-1">
+                        {client.country}
+                      </span>
+                      
+                      <button
+                        onClick={() => openEditModal(client)}
+                        className="p-2 rounded-xl text-slate-500 hover:text-blue-600 hover:bg-blue-50 border border-slate-200 transition-colors"
+                        title="Edit Business"
                       >
-                        <span>{client.website.replace(/^https?:\/\//, '')}</span>
-                        <ExternalLink className="w-3 h-3 shrink-0" />
-                      </a>
+                        <Edit className="w-3.5 h-3.5" />
+                      </button>
+
+                      <button
+                        onClick={() => handleDeleteClient(client.id, client.name)}
+                        className="p-2 rounded-xl text-slate-500 hover:text-rose-600 hover:bg-rose-50 border border-slate-200 transition-colors"
+                        title="Delete Business"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
                     </div>
+                  </div>
+
+                  {client.description && (
+                    <p className="text-xs text-slate-600 leading-relaxed bg-slate-50 p-3 rounded-xl border border-slate-100 line-clamp-3">
+                      {client.description}
+                    </p>
                   )}
-                  {client.contactPhone && (
+
+                  <div className="grid grid-cols-2 gap-2.5 text-xs">
                     <div className="flex items-center gap-2 text-slate-600">
-                      <Phone className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-                      <span className="truncate font-mono">{client.contactPhone}</span>
+                      <Building2 className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                      <span className="truncate">{client.industry || 'General Industry'}</span>
                     </div>
-                  )}
-                  {client.contactEmail && (
                     <div className="flex items-center gap-2 text-slate-600">
-                      <Mail className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-                      <span className="truncate">{client.contactEmail}</span>
+                      <MapPin className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                      <span className="truncate">{client.city}, {client.province}</span>
                     </div>
-                  )}
+                    {client.website && (
+                      <div className="flex items-center gap-2 text-slate-600">
+                        <Globe className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                        <a
+                          href={client.website.startsWith('http') ? client.website : `https://${client.website}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="truncate text-blue-600 hover:underline flex items-center gap-1"
+                        >
+                          <span>{client.website.replace(/^https?:\/\//, '')}</span>
+                          <ExternalLink className="w-3 h-3 shrink-0" />
+                        </a>
+                      </div>
+                    )}
+                    {client.contactPhone && (
+                      <div className="flex items-center gap-2 text-slate-600">
+                        <Phone className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                        <span className="truncate font-mono">{client.contactPhone}</span>
+                      </div>
+                    )}
+                    {client.contactEmail && (
+                      <div className="flex items-center gap-2 text-slate-600 col-span-2">
+                        <Mail className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                        <span className="truncate">{client.contactEmail}</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
-                <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
+                <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs mt-4">
                   <span className="text-slate-500 font-medium">
                     Tone: <strong className="text-slate-700">{client.brandTone || 'Professional'}</strong>
                   </span>
@@ -262,20 +335,29 @@ export default function ClientsPage() {
           </div>
         )}
 
-        {/* Modal to Add New Client Business */}
-        {showAddModal && (
+        {/* Modal: Add / Edit Business Profile */}
+        {showModal && (
           <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 overflow-y-auto">
-            <div className="bg-white rounded-2xl max-w-xl w-full p-6 md:p-8 border border-slate-200 shadow-2xl my-8 space-y-5">
+            <div className="bg-white rounded-3xl max-w-xl w-full p-6 md:p-8 border border-slate-200 shadow-2xl my-8 space-y-5">
               <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-                <div>
-                  <h2 className="text-lg font-extrabold text-slate-900">Add Business / Client Profile</h2>
-                  <p className="text-xs text-slate-500">Configure business identity, contact details, and marketing parameters</p>
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                    <Building2 className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-extrabold text-slate-900">
+                      {editingClient ? 'Edit Business Profile' : 'Add Business / Client Profile'}
+                    </h2>
+                    <p className="text-xs text-slate-500">
+                      {editingClient ? 'Update business details and branding' : 'Configure business identity, logo, and contact info'}
+                    </p>
+                  </div>
                 </div>
                 <button
-                  onClick={() => setShowAddModal(false)}
-                  className="text-slate-400 hover:text-slate-700 p-1 rounded-lg"
+                  onClick={() => setShowModal(false)}
+                  className="text-slate-400 hover:text-slate-700 p-1.5 rounded-full hover:bg-slate-100"
                 >
-                  ✕
+                  <X className="w-5 h-5" />
                 </button>
               </div>
 
@@ -285,7 +367,83 @@ export default function ClientsPage() {
                 </div>
               )}
 
-              <form onSubmit={handleAddClient} className="space-y-4">
+              <form onSubmit={handleSubmit} className="space-y-4">
+                {/* Logo Upload Section (Manual Upload from PC/Downloads) */}
+                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
+                  <label className="text-xs font-bold text-slate-800 block">
+                    Business Logo (Upload from Downloads or Enter URL)
+                  </label>
+
+                  <div className="flex flex-col sm:flex-row items-center gap-4">
+                    {/* Logo Preview box */}
+                    <div className="relative group w-18 h-18 rounded-2xl border-2 border-dashed border-slate-300 bg-white flex items-center justify-center shrink-0 overflow-hidden shadow-inner">
+                      {formData.logoUrl ? (
+                        <img src={formData.logoUrl} alt="Logo Preview" className="w-full h-full object-cover" />
+                      ) : (
+                        <ImageIcon className="w-7 h-7 text-slate-300" />
+                      )}
+                    </div>
+
+                    <div className="space-y-2 flex-1 w-full">
+                      {/* Hidden File Input */}
+                      <input
+                        type="file"
+                        ref={fileInputRef}
+                        accept="image/*"
+                        onChange={handleFileUpload}
+                        className="hidden"
+                      />
+
+                      <div className="flex flex-wrap items-center gap-2">
+                        {/* Manual Upload Button */}
+                        <button
+                          type="button"
+                          onClick={() => fileInputRef.current?.click()}
+                          className="px-3.5 py-2 rounded-xl text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-xs flex items-center gap-1.5 transition-all"
+                        >
+                          <Upload className="w-3.5 h-3.5" />
+                          <span>Upload from Downloads / PC</span>
+                        </button>
+
+                        {/* Smart AI Logo Generator */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const seed = formData.name.trim() || 'business';
+                            setFormData({
+                              ...formData,
+                              logoUrl: `https://api.dicebear.com/7.x/identicon/svg?seed=${encodeURIComponent(seed)}`,
+                            });
+                          }}
+                          className="px-3 py-2 rounded-xl text-xs font-bold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 flex items-center gap-1.5"
+                        >
+                          <Sparkles className="w-3.5 h-3.5 text-blue-600" />
+                          <span>Generate Logo</span>
+                        </button>
+
+                        {formData.logoUrl && (
+                          <button
+                            type="button"
+                            onClick={() => setFormData({ ...formData, logoUrl: '' })}
+                            className="px-2.5 py-2 text-xs font-semibold text-rose-600 hover:bg-rose-50 rounded-xl"
+                          >
+                            Remove
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Optional URL input */}
+                      <input
+                        type="url"
+                        placeholder="Or paste direct image URL (https://...)"
+                        value={formData.logoUrl.startsWith('data:') ? '' : formData.logoUrl}
+                        onChange={(e) => setFormData({ ...formData, logoUrl: e.target.value })}
+                        className="w-full text-[11px] p-2 rounded-xl border border-slate-200 bg-white focus:ring-1 focus:ring-blue-600 text-slate-900"
+                      />
+                    </div>
+                  </div>
+                </div>
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div>
                     <label className="text-xs font-bold text-slate-700 block mb-1">
@@ -342,7 +500,7 @@ export default function ClientsPage() {
                   </div>
                 </div>
 
-                {/* Contact Information */}
+                {/* Contact Information (Including Mobile / Phone) */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                   <div>
                     <label className="text-xs font-bold text-slate-700 block mb-1">
@@ -413,42 +571,6 @@ export default function ClientsPage() {
                   </div>
                 </div>
 
-                {/* Logo URL & Live Preview */}
-                <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <label className="text-xs font-bold text-slate-700">Logo Image URL</label>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const seed = formData.name.trim() || 'business';
-                        setFormData({
-                          ...formData,
-                          logoUrl: `https://api.dicebear.com/7.x/identicon/svg?seed=${encodeURIComponent(seed)}`,
-                        });
-                      }}
-                      className="text-[11px] font-bold text-blue-600 hover:underline flex items-center gap-1"
-                    >
-                      <Sparkles className="w-3 h-3" /> Generate Smart Logo
-                    </button>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="url"
-                      placeholder="https://example.com/logo.png (or leave blank for auto logo)"
-                      value={formData.logoUrl}
-                      onChange={(e) => setFormData({ ...formData, logoUrl: e.target.value })}
-                      className="w-full text-xs p-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-600 text-slate-900"
-                    />
-                    <div className="w-10 h-10 rounded-xl border border-slate-200 bg-slate-50 flex items-center justify-center shrink-0 overflow-hidden">
-                      {formData.logoUrl ? (
-                        <img src={formData.logoUrl} alt="Preview" className="w-full h-full object-cover" />
-                      ) : (
-                        <ImageIcon className="w-4 h-4 text-slate-400" />
-                      )}
-                    </div>
-                  </div>
-                </div>
-
                 {/* Brand Description */}
                 <div>
                   <label className="text-xs font-bold text-slate-700 block mb-1">
@@ -458,7 +580,7 @@ export default function ClientsPage() {
                     rows={2}
                     value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    placeholder="Describe core services, target audience pain points, key value proposition..."
+                    placeholder="Describe core services, target audience, key value proposition..."
                     className="w-full text-xs p-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-600 text-slate-900"
                   />
                 </div>
@@ -466,7 +588,7 @@ export default function ClientsPage() {
                 <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
                   <button
                     type="button"
-                    onClick={() => setShowAddModal(false)}
+                    onClick={() => setShowModal(false)}
                     className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100"
                   >
                     Cancel
@@ -479,12 +601,12 @@ export default function ClientsPage() {
                     {saving ? (
                       <>
                         <RefreshCw className="w-4 h-4 animate-spin" />
-                        <span>Saving Business Profile...</span>
+                        <span>{editingClient ? 'Updating Business...' : 'Saving Business...'}</span>
                       </>
                     ) : (
                       <>
-                        <Plus className="w-4 h-4" />
-                        <span>Save Business Profile</span>
+                        <Building2 className="w-4 h-4" />
+                        <span>{editingClient ? 'Save Changes' : 'Save Business Profile'}</span>
                       </>
                     )}
                   </button>
