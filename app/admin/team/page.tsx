@@ -97,22 +97,33 @@ export default function AdminTeamPage() {
         fetch('/api/admin/invitations', { headers }),
       ]);
 
-      if (usersRes.ok) {
-        const uData = await usersRes.json();
-        setUsers(Array.isArray(uData) ? uData : []);
-      } else {
-        const uErr = await usersRes.json().catch(() => ({}));
-        if (uErr.error) setError(uErr.error);
+      let usersJson: any = null;
+      try {
+        const text = await usersRes.text();
+        usersJson = text ? JSON.parse(text) : null;
+      } catch {}
+
+      if (usersRes.ok && usersJson) {
+        setUsers(Array.isArray(usersJson) ? usersJson : []);
+      } else if (!usersRes.ok) {
+        const errMsg = usersJson?.error || `Failed to fetch users (HTTP ${usersRes.status})`;
+        setError(errMsg);
       }
 
-      if (invRes.ok) {
-        const iData = await invRes.json();
-        setInvitations(Array.isArray(iData) ? iData : []);
-      } else {
-        const iErr = await invRes.json().catch(() => ({}));
-        if (iErr.error && !error) setError(iErr.error);
+      let invJson: any = null;
+      try {
+        const text = await invRes.text();
+        invJson = text ? JSON.parse(text) : null;
+      } catch {}
+
+      if (invRes.ok && invJson) {
+        setInvitations(Array.isArray(invJson) ? invJson : []);
+      } else if (!invRes.ok) {
+        const errMsg = invJson?.error || `Failed to fetch invitations (HTTP ${invRes.status})`;
+        setError((prev) => prev || errMsg);
       }
     } catch (err: any) {
+      console.error('[AdminTeamPage fetchData error]:', err);
       setError(err.message || 'Failed to fetch team & invitation data.');
     } finally {
       setLoading(false);
@@ -145,7 +156,12 @@ export default function AdminTeamPage() {
         }),
       });
 
-      const data = await res.json();
+      let data: any = {};
+      try {
+        const text = await res.text();
+        data = text ? JSON.parse(text) : {};
+      } catch {}
+
       if (!res.ok) {
         setError(data.error || 'Failed to create invitation.');
       } else {
@@ -173,7 +189,12 @@ export default function AdminTeamPage() {
         headers,
       });
 
-      const data = await res.json();
+      let data: any = {};
+      try {
+        const text = await res.text();
+        data = text ? JSON.parse(text) : {};
+      } catch {}
+
       if (!res.ok) {
         setError(data.error || 'Failed to revoke invitation.');
       } else {
@@ -201,7 +222,12 @@ export default function AdminTeamPage() {
         body: JSON.stringify({ role: newRole }),
       });
 
-      const data = await res.json();
+      let data: any = {};
+      try {
+        const text = await res.text();
+        data = text ? JSON.parse(text) : {};
+      } catch {}
+
       if (!res.ok) {
         setError(data.error || 'Failed to update user role.');
       } else {
