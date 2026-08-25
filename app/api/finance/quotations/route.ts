@@ -12,31 +12,6 @@ export async function GET(req: Request) {
       orderBy: { createdAt: 'desc' },
     });
 
-    if (quotations.length === 0) {
-      return NextResponse.json([
-        {
-          id: 'qtn_01',
-          quotationNumber: 'QTN-2026-089',
-          date: '2026-08-20',
-          validUntil: '2026-09-20',
-          clientId: 'cli_jeevansphere_default',
-          clientName: 'Jeevansphere',
-          clientGstin: '07AABCU9603R1ZX',
-          billingAddress: 'CP, New Delhi, India',
-          itemsJson: JSON.stringify([
-            { desc: 'Custom Next.js Web Portal Development', qty: 1, rate: 250000, amount: 250000 },
-            { desc: 'Google Ads Setup & Creative Banner Package', qty: 1, rate: 50000, amount: 50000 },
-          ]),
-          subtotal: 300000,
-          taxAmount: 54000,
-          totalAmount: 354000,
-          currency: 'INR',
-          status: 'ACCEPTED',
-          notes: 'Standard 50% advance milestone billing. Includes 1-year security updates.',
-        },
-      ]);
-    }
-
     return NextResponse.json(quotations);
   } catch (error: any) {
     console.error('[Quotations GET Error]:', error);

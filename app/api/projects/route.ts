@@ -13,57 +13,6 @@ export async function GET(req: Request) {
       orderBy: { createdAt: 'desc' },
     });
 
-    if (projects.length === 0) {
-      return NextResponse.json([
-        {
-          id: 'proj_01',
-          projectCode: 'CK-PRJ-2001',
-          name: 'Jeevansphere Eye Care Platform & Portal',
-          clientName: 'Jeevansphere',
-          service: 'Custom Next.js Web App',
-          department: 'Development',
-          managerName: 'Harshit Singh',
-          startDate: '2026-08-01',
-          deadline: '2026-09-15',
-          progress: 65,
-          health: 'ON_TRACK',
-          status: 'ACTIVE',
-          description: 'Purpose-driven medical consultation portal with patient booking, doctor dashboard and automated SMS alerts.',
-          billingTotal: 350000,
-          billingPaid: 200000,
-          gitRepoUrl: 'https://github.com/harshito0/AIMarketing',
-          liveUrl: 'http://jeevansphere.com/',
-          milestones: [
-            { id: 'm1', title: 'Phase 1: SRS & Database Schema', status: 'COMPLETED' },
-            { id: 'm2', title: 'Phase 2: Next.js Frontend & API Hub', status: 'IN_PROGRESS' },
-            { id: 'm3', title: 'Phase 3: Production Deployment & QA', status: 'PENDING' },
-          ],
-        },
-        {
-          id: 'proj_02',
-          projectCode: 'CK-PRJ-2002',
-          name: 'Jeevansphere Performance Marketing & Meta Reels',
-          clientName: 'Jeevansphere',
-          service: 'Digital Marketing & Ads',
-          department: 'Digital Marketing',
-          managerName: 'Pooja Sharma',
-          startDate: '2026-08-10',
-          deadline: '2026-09-30',
-          progress: 45,
-          health: 'ON_TRACK',
-          status: 'ACTIVE',
-          description: 'High-converting consultation booking campaign targeting Delhi NCR across Google Search and Instagram Reels.',
-          billingTotal: 120000,
-          billingPaid: 80000,
-          milestones: [
-            { id: 'm4', title: 'Creative Storyboard & Visual Assets', status: 'COMPLETED' },
-            { id: 'm5', title: 'Campaign Setup & Pixel Tracking', status: 'IN_PROGRESS' },
-            { id: 'm6', title: 'Weekly Optimization & ROAS Scaling', status: 'PENDING' },
-          ],
-        },
-      ]);
-    }
-
     return NextResponse.json(projects);
   } catch (error: any) {
     console.error('[Projects GET Error]:', error);

@@ -12,44 +12,6 @@ export async function GET(req: Request) {
       orderBy: { createdAt: 'desc' },
     });
 
-    if (expenses.length === 0) {
-      return NextResponse.json([
-        {
-          id: 'exp_01',
-          date: '2026-08-01',
-          category: 'HOSTING',
-          vendor: 'Vercel Pro & AWS Cloud',
-          amount: 14500,
-          gstAmount: 2610,
-          paymentMethod: 'Corporate Credit Card',
-          description: 'Monthly production hosting, serverless edge compute & database backups.',
-          department: 'Development',
-        },
-        {
-          id: 'exp_02',
-          date: '2026-08-05',
-          category: 'SOFTWARE',
-          vendor: 'OpenAI & Google AI API Credits',
-          amount: 28000,
-          gstAmount: 5040,
-          paymentMethod: 'Corporate Credit Card',
-          description: 'API tokens for creative studio banner generations and proposal intelligence.',
-          department: 'Digital Marketing',
-        },
-        {
-          id: 'exp_03',
-          date: '2026-08-15',
-          category: 'OFFICE',
-          vendor: 'WeWork Office Space & Internet',
-          amount: 65000,
-          gstAmount: 11700,
-          paymentMethod: 'Bank Transfer (NEFT)',
-          description: 'Office rent, high-speed leased line fiber internet & utilities for August.',
-          department: 'Administration',
-        },
-      ]);
-    }
-
     return NextResponse.json(expenses);
   } catch (error: any) {
     console.error('[Expenses GET Error]:', error);

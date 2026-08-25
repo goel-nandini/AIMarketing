@@ -12,34 +12,6 @@ export async function GET(req: Request) {
       orderBy: { createdAt: 'desc' },
     });
 
-    if (logs.length === 0) {
-      return NextResponse.json([
-        {
-          id: 'log_01',
-          employeeName: 'Harshit Singh',
-          employeeEmail: 'harshitsingh19622@gmail.com',
-          projectName: 'Jeevansphere Eye Care Platform',
-          taskTitle: 'Next.js App Router Architecture & Security Guard',
-          date: new Date().toISOString().split('T')[0],
-          workCompleted: 'Implemented serverless SQLite fallback, dynamic route exports, and resolved Prisma 5 client builds.',
-          timeSpentHours: 6.5,
-          proofUrl: 'https://github.com/harshito0/AIMarketing',
-          tomorrowPlan: 'Build Quotation & Invoice GST generator module.',
-        },
-        {
-          id: 'log_02',
-          employeeName: 'Pooja Sharma',
-          employeeEmail: 'pooja@codekap.com',
-          projectName: 'Jeevansphere Ads & Reels',
-          taskTitle: 'Design 3 Visual Storyboards for Delhi Clinic',
-          date: new Date().toISOString().split('T')[0],
-          workCompleted: 'Created 2 MP4 reels and slit lamp optical examination banner ads targeting Delhi NCR.',
-          timeSpentHours: 5.0,
-          tomorrowPlan: 'A/B test CTR and optimize CPC.',
-        },
-      ]);
-    }
-
     return NextResponse.json(logs);
   } catch (error: any) {
     console.error('[WorkLogs GET Error]:', error);

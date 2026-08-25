@@ -12,61 +12,6 @@ export async function GET(req: Request) {
       orderBy: { createdAt: 'desc' },
     });
 
-    if (invoices.length === 0) {
-      return NextResponse.json([
-        {
-          id: 'inv_01',
-          invoiceNumber: 'INV-2026-001',
-          date: '2026-08-22',
-          dueDate: '2026-09-05',
-          clientId: 'cli_jeevansphere_default',
-          clientName: 'Jeevansphere',
-          clientGstin: '07AABCU9603R1ZX',
-          billingAddress: 'CP, New Delhi, India',
-          itemsJson: JSON.stringify([
-            { desc: 'Phase 1: Architecture & UI Sprints', hsn: '998314', qty: 1, rate: 175000, amount: 175000 },
-          ]),
-          subtotal: 175000,
-          cgst: 15750,
-          sgst: 15750,
-          igst: 0,
-          totalAmount: 206500,
-          amountPaid: 206500,
-          balanceDue: 0,
-          currency: 'INR',
-          status: 'PAID',
-          paymentMethod: 'Bank Transfer (IMPS)',
-          razorpayPaymentId: 'pay_P198273821',
-          notes: 'Full payment received. GST tax invoice generated for August filing.',
-        },
-        {
-          id: 'inv_02',
-          invoiceNumber: 'INV-2026-002',
-          date: '2026-08-25',
-          dueDate: '2026-09-10',
-          clientId: 'cli_jeevansphere_default',
-          clientName: 'Jeevansphere',
-          clientGstin: '07AABCU9603R1ZX',
-          billingAddress: 'CP, New Delhi, India',
-          itemsJson: JSON.stringify([
-            { desc: 'Phase 2: Next.js API & Clinic Portal', hsn: '998314', qty: 1, rate: 175000, amount: 175000 },
-          ]),
-          subtotal: 175000,
-          cgst: 15750,
-          sgst: 15750,
-          igst: 0,
-          totalAmount: 206500,
-          amountPaid: 0,
-          balanceDue: 206500,
-          currency: 'INR',
-          status: 'SENT',
-          paymentMethod: 'Razorpay / UPI',
-          razorpayPaymentLinkId: 'https://rzp.io/l/ck_inv_002',
-          notes: 'Milestone 2 invoice. Please clear within 15 days.',
-        },
-      ]);
-    }
-
     return NextResponse.json(invoices);
   } catch (error: any) {
     console.error('[Invoices GET Error]:', error);

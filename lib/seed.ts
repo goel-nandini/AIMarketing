@@ -358,6 +358,20 @@ export async function ensureSeedData() {
           await prisma.$executeRawUnsafe(query);
         } catch {}
       }
+
+      // Safe column additions for pre-existing SQLite database
+      const safeAlterQueries = [
+        `ALTER TABLE "Task" ADD COLUMN "projectId" TEXT;`,
+        `ALTER TABLE "Task" ADD COLUMN "projectName" TEXT;`,
+        `ALTER TABLE "Task" ADD COLUMN "sopRef" TEXT;`,
+        `ALTER TABLE "Task" ADD COLUMN "proofUrl" TEXT;`,
+        `ALTER TABLE "Task" ADD COLUMN "githubLink" TEXT;`,
+      ];
+      for (const q of safeAlterQueries) {
+        try {
+          await prisma.$executeRawUnsafe(q);
+        } catch {}
+      }
       tablesEnsured = true;
     }
 
@@ -380,7 +394,11 @@ export async function ensureSeedData() {
       },
     });
 
-    // 2. Ensure Active Super Admin Passcode (AGENT-7788)
+    // 2. Ensure Active Super Admin Passcode (AGENT-7788) & Clean up test invites
+    await prisma.invitation.deleteMany({
+      where: { passcode: { not: 'AGENT-7788' } },
+    });
+
     const existingInvite = await prisma.invitation.findFirst({
       where: { passcode: 'AGENT-7788' },
     });

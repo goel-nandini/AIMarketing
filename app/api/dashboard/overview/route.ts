@@ -9,64 +9,65 @@ export async function GET(req: Request) {
   try {
     await ensureSeedData();
 
+    // Query actual dynamic counts and totals
     const [
       activeProjectsCount,
       openLeadsCount,
-      wonLeadsCount,
+      wonDealsCount,
       pendingTasksCount,
-      allEmployeesCount,
+      teamSizeCount,
       invoices,
       expenses,
       recentProjects,
       recentTasks,
-      recentLogs
+      recentLogs,
     ] = await Promise.all([
-      prisma.project.count({ where: { status: 'ACTIVE' } }).catch(() => 4),
-      prisma.lead.count({ where: { status: { notIn: ['WON', 'LOST'] } } }).catch(() => 6),
-      prisma.lead.count({ where: { status: 'WON' } }).catch(() => 2),
-      prisma.task.count({ where: { status: { notIn: ['COMPLETED'] } } }).catch(() => 3),
-      prisma.employee.count().catch(() => 8),
-      prisma.invoice.findMany({ select: { totalAmount: true, amountPaid: true, balanceDue: true, status: true } }).catch(() => []),
-      prisma.expense.findMany({ select: { amount: true } }).catch(() => []),
-      prisma.project.findMany({ take: 4, orderBy: { updatedAt: 'desc' } }).catch(() => []),
-      prisma.task.findMany({ take: 5, orderBy: { createdAt: 'desc' } }).catch(() => []),
-      prisma.auditLog.findMany({ take: 6, orderBy: { timestamp: 'desc' } }).catch(() => []),
+      prisma.project.count({ where: { status: 'ACTIVE' } }),
+      prisma.lead.count({ where: { status: { notIn: ['WON', 'LOST'] } } }),
+      prisma.lead.count({ where: { status: 'WON' } }),
+      prisma.task.count({ where: { status: { notIn: ['DONE', 'CANCELLED'] } } }),
+      prisma.user.count(),
+      prisma.invoice.findMany(),
+      prisma.expense.findMany(),
+      prisma.project.findMany({ take: 5, orderBy: { createdAt: 'desc' } }),
+      prisma.task.findMany({ take: 5, orderBy: { createdAt: 'desc' } }),
+      prisma.auditLog.findMany({ take: 6, orderBy: { timestamp: 'desc' } }),
     ]);
 
-    const totalRevenue = invoices.reduce((acc, inv) => acc + (inv.totalAmount || 0), 0) || 1250000;
-    const totalCollected = invoices.reduce((acc, inv) => acc + (inv.amountPaid || 0), 0) || 980000;
-    const totalOutstanding = invoices.reduce((acc, inv) => acc + (inv.balanceDue || 0), 0) || 270000;
-    const totalExpenses = expenses.reduce((acc, exp) => acc + (exp.amount || 0), 0) || 185000;
-    const operatingSurplus = totalRevenue - totalExpenses;
+    const revenue = invoices.reduce((acc, inv) => acc + (inv.totalAmount || 0), 0);
+    const collections = invoices.reduce((acc, inv) => acc + (inv.amountPaid || 0), 0);
+    const outstanding = invoices.reduce((acc, inv) => acc + (inv.balanceDue || 0), 0);
+    const totalExpenses = expenses.reduce((acc, exp) => acc + (exp.amount || 0), 0);
+    const operatingSurplus = collections - totalExpenses;
 
     return NextResponse.json({
-      revenue: totalRevenue,
-      collections: totalCollected,
-      outstanding: totalOutstanding,
+      revenue,
+      collections,
+      outstanding,
       expenses: totalExpenses,
       operatingSurplus,
-      activeProjects: activeProjectsCount || 4,
-      openLeads: openLeadsCount || 6,
-      wonDeals: wonLeadsCount || 2,
-      pendingTasks: pendingTasksCount || 3,
-      teamSize: allEmployeesCount || 8,
+      activeProjects: activeProjectsCount,
+      openLeads: openLeadsCount,
+      wonDeals: wonDealsCount,
+      pendingTasks: pendingTasksCount,
+      teamSize: teamSizeCount,
       recentProjects,
       recentTasks,
       recentLogs,
     });
   } catch (error: any) {
-    console.error('[Dashboard API Error]:', error);
+    console.error('[Dashboard Overview Error]:', error);
     return NextResponse.json({
-      revenue: 1250000,
-      collections: 980000,
-      outstanding: 270000,
-      expenses: 185000,
-      operatingSurplus: 1065000,
-      activeProjects: 4,
-      openLeads: 6,
-      wonDeals: 2,
-      pendingTasks: 3,
-      teamSize: 8,
+      revenue: 0,
+      collections: 0,
+      outstanding: 0,
+      expenses: 0,
+      operatingSurplus: 0,
+      activeProjects: 0,
+      openLeads: 0,
+      wonDeals: 0,
+      pendingTasks: 0,
+      teamSize: 1,
       recentProjects: [],
       recentTasks: [],
       recentLogs: [],
