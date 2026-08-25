@@ -49,7 +49,6 @@ export const DEFAULT_CLIENTS: Client[] = [
     logoUrl: 'https://api.dicebear.com/7.x/identicon/svg?seed=Jeevansphere',
     status: 'ACTIVE',
     createdAt: '2026-08-25T00:00:00.000Z',
-    updatedAt: '2026-08-25T00:00:00.000Z',
   },
 ];
 
@@ -238,11 +237,9 @@ export default function ClientsPage() {
       if (!savedClient) {
         savedClient = {
           id: editingClient?.id || `cli_${Date.now()}`,
-          clientCode: editingClient?.clientCode || `CK-${formData.name.substring(0, 4).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`,
           ...payload,
           status: 'ACTIVE',
           createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
         };
       }
 
