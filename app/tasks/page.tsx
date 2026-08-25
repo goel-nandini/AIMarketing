@@ -4,7 +4,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { DashboardLayout } from '../../components/dashboard-layout';
 import { AuthGuard } from '../../components/auth-guard';
 import { useAuth } from '../../lib/auth/auth-context';
-import { Task, TaskPriority, TaskStatus, UserProfile, Client } from '../../lib/types';
+import { Task, TaskPriority, TaskStatus, UserProfile, Client, Invitation } from '../../lib/types';
 import {
   CheckSquare,
   Plus,
@@ -22,7 +22,8 @@ import {
   Filter,
   Check,
   Send,
-  X
+  X,
+  Mail
 } from 'lucide-react';
 
 export default function TasksPage() {
@@ -31,6 +32,7 @@ export default function TasksPage() {
 
   const [tasks, setTasks] = useState<Task[]>([]);
   const [teamUsers, setTeamUsers] = useState<UserProfile[]>([]);
+  const [invitations, setInvitations] = useState<Invitation[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -44,11 +46,12 @@ export default function TasksPage() {
   // New Task Modal
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [customEmailMode, setCustomEmailMode] = useState(false);
   const [newTask, setNewTask] = useState({
     title: '',
     description: '',
     priority: 'MEDIUM' as TaskPriority,
-    assignedToEmail: 'harshitsingh19622@gmail.com',
+    assignedToEmail: 'sharshit.0211@gmail.com',
     clientId: '',
     dueDate: '',
   });
@@ -82,10 +85,11 @@ export default function TasksPage() {
         ? '/api/tasks?all=true'
         : `/api/tasks?userId=${encodeURIComponent(effectiveUserId)}`;
 
-      const [taskRes, userRes, clientRes] = await Promise.all([
+      const [taskRes, userRes, clientRes, invRes] = await Promise.all([
         fetch(url, { headers }),
         fetch('/api/users', { headers }),
         fetch('/api/clients', { headers }),
+        fetch('/api/admin/invitations', { headers }),
       ]);
 
       let taskJson: any = null;
@@ -117,6 +121,16 @@ export default function TasksPage() {
       if (clientRes.ok && clientJson && Array.isArray(clientJson)) {
         setClients(clientJson);
       }
+
+      let invJson: any = null;
+      try {
+        const text = await invRes.text();
+        invJson = text ? JSON.parse(text) : null;
+      } catch {}
+
+      if (invRes.ok && invJson && Array.isArray(invJson)) {
+        setInvitations(invJson);
+      }
     } catch (err: any) {
       console.warn('[Tasks fetch notice]:', err?.message);
     } finally {
@@ -129,16 +143,61 @@ export default function TasksPage() {
     fetchTasks();
   }, [fetchTasks]);
 
+  // Combine unique candidate assignees from both registered users and invitations
+  const combinedAssignees = React.useMemo(() => {
+    const map = new Map<string, { email: string; name: string; tag: string }>();
+
+    teamUsers.forEach((u) => {
+      map.set(u.email.toLowerCase(), {
+        email: u.email,
+        name: u.name || u.email.split('@')[0],
+        tag: `Member [${u.role}]`,
+      });
+    });
+
+    invitations.forEach((inv) => {
+      if (!map.has(inv.email.toLowerCase())) {
+        map.set(inv.email.toLowerCase(), {
+          email: inv.email,
+          name: inv.name || inv.email.split('@')[0],
+          tag: `Invited [${inv.role}] (Passcode: ${inv.passcode})`,
+        });
+      }
+    });
+
+    // Default fallbacks if empty
+    if (!map.has('sharshit.0211@gmail.com')) {
+      map.set('sharshit.0211@gmail.com', {
+        email: 'sharshit.0211@gmail.com',
+        name: 'Harshit Singh',
+        tag: 'Invited Team Member',
+      });
+    }
+    if (!map.has('harshitsingh19622@gmail.com')) {
+      map.set('harshitsingh19622@gmail.com', {
+        email: 'harshitsingh19622@gmail.com',
+        name: 'Harshit Singh (Admin)',
+        tag: 'Lead Engineer',
+      });
+    }
+
+    return Array.from(map.values());
+  }, [teamUsers, invitations]);
+
   const handleCreateTask = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newTask.title.trim() || !newTask.assignedToEmail) return;
+    if (!newTask.title.trim() || !newTask.assignedToEmail.trim()) {
+      setError('Please provide a task title and assignee email.');
+      return;
+    }
 
     setSubmitting(true);
     setError('');
     setSuccessMessage('');
 
     try {
-      const selectedUser = teamUsers.find((u) => u.email.toLowerCase() === newTask.assignedToEmail.toLowerCase());
+      const emailLower = newTask.assignedToEmail.toLowerCase().trim();
+      const selectedCandidate = combinedAssignees.find((c) => c.email.toLowerCase() === emailLower);
       const selectedClient = clients.find((c) => c.id === newTask.clientId);
       const effectiveUserId = profile?.uid || authUser?.uid || 'usr_aman';
 
@@ -146,9 +205,9 @@ export default function TasksPage() {
         title: newTask.title.trim(),
         description: newTask.description.trim(),
         priority: newTask.priority,
-        assignedToId: selectedUser?.uid || newTask.assignedToEmail,
-        assignedToName: selectedUser?.name || newTask.assignedToEmail.split('@')[0],
-        assignedToEmail: newTask.assignedToEmail.toLowerCase().trim(),
+        assignedToId: emailLower,
+        assignedToName: selectedCandidate?.name || emailLower.split('@')[0],
+        assignedToEmail: emailLower,
         clientId: selectedClient?.id || undefined,
         clientName: selectedClient?.name || undefined,
         dueDate: newTask.dueDate || undefined,
@@ -167,7 +226,7 @@ export default function TasksPage() {
         data = text ? JSON.parse(text) : {};
       } catch {}
 
-      if (res.ok) {
+      if (res.ok && data.success) {
         const createdTaskRecord: Task = data.task || {
           id: `tsk_${Date.now()}`,
           ...payload,
@@ -179,14 +238,14 @@ export default function TasksPage() {
         };
 
         setTasks((prev) => [createdTaskRecord, ...prev.filter((t) => t.id !== createdTaskRecord.id)]);
-        setSuccessMessage(`Task assigned successfully to ${payload.assignedToName}!`);
+        setSuccessMessage(`Task assigned successfully to ${payload.assignedToName} (${payload.assignedToEmail})!`);
         setIsModalOpen(false);
         setActiveTab('team');
         setNewTask({
           title: '',
           description: '',
           priority: 'MEDIUM',
-          assignedToEmail: 'harshitsingh19622@gmail.com',
+          assignedToEmail: 'sharshit.0211@gmail.com',
           clientId: '',
           dueDate: '',
         });
@@ -204,8 +263,8 @@ export default function TasksPage() {
   const handleStatusChange = async (taskId: string, newStatus: TaskStatus) => {
     try {
       const headers = await getAuthHeaders();
-      setTasks(prev =>
-        prev.map(t => (t.id === taskId ? { ...t, status: newStatus } : t))
+      setTasks((prev) =>
+        prev.map((t) => (t.id === taskId ? { ...t, status: newStatus } : t))
       );
 
       await fetch(`/api/tasks/${taskId}`, {
@@ -222,7 +281,7 @@ export default function TasksPage() {
     if (!confirm('Are you sure you want to delete this task?')) return;
     try {
       const headers = await getAuthHeaders();
-      setTasks(prev => prev.filter(t => t.id !== taskId));
+      setTasks((prev) => prev.filter((t) => t.id !== taskId));
 
       await fetch(`/api/tasks/${taskId}`, {
         method: 'DELETE',
@@ -233,7 +292,7 @@ export default function TasksPage() {
     }
   };
 
-  const filteredTasks = tasks.filter(t => {
+  const filteredTasks = tasks.filter((t) => {
     if (statusFilter === 'ALL') return true;
     return t.status === statusFilter;
   });
@@ -534,22 +593,43 @@ export default function TasksPage() {
 
               <form onSubmit={handleCreateTask} className="space-y-4">
                 <div>
-                  <label className="text-xs font-bold text-slate-700 block mb-1">
-                    Assign To Team Member *
-                  </label>
-                  <select
-                    required
-                    value={newTask.assignedToEmail}
-                    onChange={(e) => setNewTask({ ...newTask, assignedToEmail: e.target.value })}
-                    className="w-full text-xs p-2.5 rounded-xl border border-slate-200 font-medium focus:ring-2 focus:ring-blue-600 text-slate-900 bg-white"
-                  >
-                    <option value="">-- Select Member --</option>
-                    {teamUsers.map(u => (
-                      <option key={u.uid} value={u.email}>
-                        {u.name} ({u.email}) - [{u.role}]
-                      </option>
-                    ))}
-                  </select>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-xs font-bold text-slate-700 block">
+                      Assign To Team Member *
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => setCustomEmailMode(!customEmailMode)}
+                      className="text-[11px] font-bold text-blue-600 hover:underline cursor-pointer"
+                    >
+                      {customEmailMode ? 'Pick from Team List' : 'Or Type Custom Email'}
+                    </button>
+                  </div>
+
+                  {customEmailMode ? (
+                    <input
+                      type="email"
+                      required
+                      placeholder="e.g. sharshit.0211@gmail.com"
+                      value={newTask.assignedToEmail}
+                      onChange={(e) => setNewTask({ ...newTask, assignedToEmail: e.target.value })}
+                      className="w-full text-xs p-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-600 text-slate-900 bg-white"
+                    />
+                  ) : (
+                    <select
+                      required
+                      value={newTask.assignedToEmail}
+                      onChange={(e) => setNewTask({ ...newTask, assignedToEmail: e.target.value })}
+                      className="w-full text-xs p-2.5 rounded-xl border border-slate-200 font-medium focus:ring-2 focus:ring-blue-600 text-slate-900 bg-white"
+                    >
+                      <option value="">-- Select Member / Invite --</option>
+                      {combinedAssignees.map((candidate) => (
+                        <option key={candidate.email} value={candidate.email}>
+                          {candidate.name} ({candidate.email}) — {candidate.tag}
+                        </option>
+                      ))}
+                    </select>
+                  )}
                 </div>
 
                 <div>
@@ -572,7 +652,7 @@ export default function TasksPage() {
                   </label>
                   <textarea
                     rows={3}
-                    placeholder="Describe deliverables, required copywriting style, target patient demographics, or ad budget guidance..."
+                    placeholder="Describe deliverables, required copywriting style, target demographics, or project guidance..."
                     value={newTask.description}
                     onChange={(e) => setNewTask({ ...newTask, description: e.target.value })}
                     className="w-full text-xs p-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-600 text-slate-900"

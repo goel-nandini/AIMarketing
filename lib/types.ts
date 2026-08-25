@@ -22,15 +22,17 @@ export type InvitationStatus = 'PENDING' | 'ACCEPTED' | 'EXPIRED' | 'REVOKED';
 export interface Invitation {
   id: string;
   email: string;
+  name?: string | null;
   role: UserRole;
+  passcode?: string;
   invitedBy: string;
   invitedByName?: string;
-  tokenHash: string;
+  tokenHash?: string;
   status: InvitationStatus;
   expiresAt: string;
   acceptedAt?: string;
   createdAt: string;
-  message?: string;
+  message?: string | null;
 }
 
 export interface User {
