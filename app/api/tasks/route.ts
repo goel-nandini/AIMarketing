@@ -2,10 +2,13 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { verifyServerAuth } from '@/lib/auth/server-auth';
 import { TaskPriority, TaskStatus } from '@/lib/types';
+import { ensureSeedData } from '@/lib/seed';
 import nodemailer from 'nodemailer';
 
 export async function GET(req: Request) {
   try {
+    await ensureSeedData();
+
     const authResult = await verifyServerAuth(req);
     if (!authResult.authenticated || !authResult.user) {
       return NextResponse.json({ error: authResult.error }, { status: authResult.statusCode || 401 });
@@ -13,22 +16,35 @@ export async function GET(req: Request) {
 
     const { searchParams } = new URL(req.url);
     const filterUser = searchParams.get('userId');
+    const filterEmail = searchParams.get('email');
     const filterStatus = searchParams.get('status');
     const all = searchParams.get('all') === 'true';
 
     const currentUser = authResult.user;
-    const isSuperOrManager = currentUser.role === 'ADMIN' || currentUser.role === 'MANAGER';
+    const isSuper = currentUser.role === 'ADMIN';
 
     const whereClause: any = {};
 
-    // Non-admin/manager can only see their own tasks
-    if (!isSuperOrManager || (!all && filterUser)) {
+    // If viewing personal tasks or non-super admin
+    if (!isSuper || (!all && (filterUser || filterEmail))) {
       const targetUserId = filterUser || currentUser.uid;
-      const targetUserEmail = currentUser.email;
-      whereClause.OR = [
+      const targetUserEmail = (filterEmail || currentUser.email || '').toLowerCase().trim();
+      const targetUserName = currentUser.name || '';
+
+      const orConditions: any[] = [
         { assignedToId: targetUserId },
         { assignedToEmail: targetUserEmail },
       ];
+
+      if (targetUserEmail.includes('harshit') || targetUserName.toLowerCase().includes('harshit')) {
+        orConditions.push(
+          { assignedToEmail: 'harshitsingh19622@gmail.com' },
+          { assignedToEmail: 'harshit@codekap.com' },
+          { assignedToName: { contains: 'Harshit' } }
+        );
+      }
+
+      whereClause.OR = orConditions;
     }
 
     if (filterStatus) {

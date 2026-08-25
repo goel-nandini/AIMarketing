@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '../../../lib/prisma';
+import { ensureSeedData } from '../../../lib/seed';
 
 function generateClientCode(name: string): string {
   const clean = name.replace(/[^a-zA-Z0-9]/g, '').toUpperCase().slice(0, 4) || 'CLI';
@@ -9,6 +10,7 @@ function generateClientCode(name: string): string {
 
 export async function GET() {
   try {
+    await ensureSeedData();
     const clients = await prisma.client.findMany({
       orderBy: { createdAt: 'desc' },
     });

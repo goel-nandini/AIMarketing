@@ -37,12 +37,13 @@ export default function DashboardPage() {
     try {
       setLoading(true);
       const effectiveUserId = profile?.uid || authUser?.uid || 'usr_aman';
+      const effectiveEmail = profile?.email || authUser?.email || 'aman@codekap.com';
       const headers = { 'X-User-Id': effectiveUserId };
 
       const [cRes, aRes, tRes] = await Promise.all([
         fetch('/api/campaigns', { headers }),
         fetch('/api/audit-logs', { headers }),
-        fetch(`/api/tasks?userId=${encodeURIComponent(effectiveUserId)}`, { headers })
+        fetch(`/api/tasks?my=true&userId=${encodeURIComponent(effectiveUserId)}&email=${encodeURIComponent(effectiveEmail)}`, { headers })
       ]);
 
       if (cRes.ok) setCampaigns(await cRes.json());
@@ -254,7 +255,7 @@ export default function DashboardPage() {
                       </button>
 
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <span className={`text-xs font-bold ${isDone ? 'line-through text-slate-400' : 'text-slate-900'}`}>
                             {task.title}
                           </span>
@@ -269,9 +270,17 @@ export default function DashboardPage() {
                           >
                             {task.priority}
                           </span>
+                          {task.clientName && (
+                            <span className="px-1.5 py-0.2 rounded bg-purple-50 text-purple-700 text-[9px] font-bold border border-purple-100">
+                              🏢 {task.clientName}
+                            </span>
+                          )}
                         </div>
-                        <p className="text-[11px] text-slate-500 truncate mt-0.5">
-                          {task.description || (task.clientName ? `Client: ${task.clientName}` : 'Marketing deliverable')}
+                        <p className="text-[11px] text-slate-600 line-clamp-1 mt-0.5 font-medium">
+                          {task.description || 'Marketing deliverable and action item.'}
+                        </p>
+                        <p className="text-[10px] text-slate-400 mt-0.5">
+                          Assigned by <strong className="text-slate-600">{task.assignedByName || 'Aman Sir (Super Admin)'}</strong>
                         </p>
                       </div>
                     </div>

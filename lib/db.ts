@@ -1,6 +1,6 @@
 import { User, Client, Campaign, CampaignProposal, AuditLog, AISettings, ConnectionStatus, AgentRunState } from './types';
 
-// Pre-seeded Super Admin User
+// Pre-seeded Workspace Users
 export const INITIAL_USERS: User[] = [
   {
     id: 'usr_aman',
@@ -10,10 +10,40 @@ export const INITIAL_USERS: User[] = [
     avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
     title: 'Super Admin / Founder & CEO',
   },
+  {
+    id: 'usr_harshit',
+    name: 'Harshit Singh',
+    email: 'harshitsingh19622@gmail.com',
+    role: 'TEAM_MEMBER',
+    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=harshitsingh19622@gmail.com',
+    title: 'Marketing Manager',
+  },
 ];
 
-// Clean state: No dummy clients initially
-export const INITIAL_CLIENTS: Client[] = [];
+// Permanent Workspace Clients
+export const INITIAL_CLIENTS: Client[] = [
+  {
+    id: 'cmt7xr7zv0000p91dzh4racbz',
+    name: 'Jeevansphere',
+    businessName: 'Jeevansphere',
+    clientCode: 'CK-JEEV-2001',
+    website: 'http://jeevansphere.com/',
+    industry: 'Eye Care / Healthcare Platform',
+    country: 'India',
+    province: 'Delhi',
+    city: 'CP, New Delhi',
+    contactName: 'Deepak Yadav',
+    contactEmail: 'jeevansphere@com.in',
+    contactPhone: '9690922001',
+    deploymentUrl: 'http://jeevansphere.com/',
+    githubRepo: 'https://github.com/harshito0/AIMarketing',
+    description: 'jeevanSphere is a purpose-driven platform focused on creating meaningful impact by connecting people, ideas, and opportunities. It aims to build an inclusive ecosystem that supports growth, awareness, and positive social transformation.',
+    brandTone: 'Professional, Modern, High-Converting',
+    logoUrl: 'https://api.dicebear.com/7.x/identicon/svg?seed=Jeevansphere',
+    status: 'ACTIVE',
+    createdAt: '2026-08-25T00:37:38.491Z',
+  },
+];
 
 // Initial Campaigns (Clean state, no dummy data)
 export const INITIAL_CAMPAIGNS: Campaign[] = [];
