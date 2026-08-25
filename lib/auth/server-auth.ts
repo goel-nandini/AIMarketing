@@ -100,28 +100,31 @@ export async function verifyServerAuth(req: Request): Promise<AuthVerificationRe
     } catch {}
   }
 
-  // 3. Fallback for initial admin (Aman Sir)
+  // 3. Fallback for initial admin (Aman Sir / Harshit Singh)
   const initialAdminEmail = (process.env.INITIAL_ADMIN_EMAIL || 'aman@codekap.com').toLowerCase().trim();
   const isAmanOrAdmin =
     lookupUid === 'usr_aman' ||
+    lookupUid === 'usr_harshit' ||
     (lookupEmail && (
       lookupEmail.toLowerCase().trim() === initialAdminEmail ||
-      lookupEmail.toLowerCase().includes('aman')
+      lookupEmail.toLowerCase().includes('aman') ||
+      lookupEmail.toLowerCase().includes('harshit')
     ));
 
   if (!userProfile) {
     if (isAmanOrAdmin) {
+      const isHarshit = (lookupEmail && lookupEmail.includes('harshit')) || lookupUid === 'usr_harshit';
       userProfile = {
-        uid: lookupUid || 'usr_aman',
-        name: decodedName || 'Aman Sir',
-        email: lookupEmail || 'aman@codekap.com',
-        username: 'aman',
+        uid: lookupUid || (isHarshit ? 'usr_harshit' : 'usr_aman'),
+        name: decodedName || (isHarshit ? 'Harshit Singh' : 'Aman Sir'),
+        email: lookupEmail || (isHarshit ? 'harshitsingh19622@gmail.com' : 'aman@codekap.com'),
+        username: isHarshit ? 'harshitsingh19622' : 'aman',
         role: 'ADMIN',
         status: 'ACTIVE',
         emailVerified: true,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
-        title: 'Super Admin / Founder & CEO',
+        title: isHarshit ? 'Lead Architect / Admin' : 'Super Admin / Founder & CEO',
       };
     } else {
       userProfile = {
