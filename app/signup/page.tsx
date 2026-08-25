@@ -41,7 +41,8 @@ function SignUpForm() {
   }, [initialPasscode]);
 
   const handleValidatePasscode = async (codeToTest: string) => {
-    if (!codeToTest.trim()) {
+    const cleanCode = codeToTest.replace(/\s+/g, '').toUpperCase();
+    if (!cleanCode) {
       setPasscodeStatus({ checked: false });
       return;
     }
@@ -51,7 +52,7 @@ function SignUpForm() {
       const res = await fetch('/api/invitations/validate-passcode', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ passcode: codeToTest.trim() }),
+        body: JSON.stringify({ passcode: cleanCode }),
       });
       const data = await res.json();
       if (res.ok && data.valid) {
