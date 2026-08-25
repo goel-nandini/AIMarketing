@@ -19,15 +19,15 @@ export class GeminiImageProvider extends ImageGenerationProvider {
     }
 
     try {
-      // Generate live custom AI creative banner
-      const imageUrl = await generateCreativeBanner({
+      // Generate live custom AI creative banner with Gemini prompt engineering
+      const bannerResult = await generateCreativeBanner({
         prompt: options.prompt,
         aspectRatio: options.aspectRatio,
       });
 
       return {
         success: true,
-        imageUrl,
+        imageUrl: bannerResult.imageUrl,
         aspectRatio: options.aspectRatio,
         provider: this.name,
         model: selectedModel,

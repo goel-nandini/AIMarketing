@@ -84,13 +84,16 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Prompt is required to generate creative' }, { status: 400 });
     }
 
-    // 1. Generate live creative visual with Google Gemini
-    const imageUrl = await generateCreativeBanner({
+    // 1. Generate live creative visual with Google Gemini Automated Prompt Engineering
+    const bannerResult = await generateCreativeBanner({
       prompt: prompt.trim(),
       aspectRatio,
       campaignTitle: title,
       clientName: clientName || 'Brand Specialist',
     });
+
+    const imageUrl = bannerResult.imageUrl;
+    const finalPrompt = bannerResult.enhancedPrompt || prompt.trim();
 
     // 2. Persist directly into SQLite Creative database
     const newCreative = await prisma.creative.create({
@@ -100,7 +103,7 @@ export async function POST(req: Request) {
         type: 'IMAGE',
         provider: 'Gemini',
         model: 'gemini-3.6-flash',
-        prompt: prompt.trim(),
+        prompt: finalPrompt,
         aspectRatio,
         imageUrl,
         status: 'FINAL',
@@ -126,6 +129,7 @@ export async function POST(req: Request) {
       provider: newCreative.provider,
       model: newCreative.model,
       prompt: newCreative.prompt,
+      enhancedPrompt: bannerResult.enhancedPrompt,
       aspectRatio: newCreative.aspectRatio,
       downloadUrl: newCreative.imageUrl,
       status: newCreative.status,
