@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { DashboardLayout } from '../../components/dashboard-layout';
 import { AuthGuard } from '../../components/auth-guard';
 import { SOPItem } from '../../lib/types';
-import { BookOpen, Plus, Search, Filter, CheckSquare, Clock, ShieldCheck, FileText, ChevronRight, X, Sparkles } from 'lucide-react';
+import { BookOpen, Plus, Search, Filter, CheckSquare, Clock, ShieldCheck, FileText, ChevronRight, X, Sparkles, Edit, Trash2 } from 'lucide-react';
 
 export default function SOPLibraryPage() {
   const [sops, setSops] = useState<SOPItem[]>([]);
@@ -13,6 +13,7 @@ export default function SOPLibraryPage() {
   const [deptFilter, setDeptFilter] = useState('ALL');
   const [selectedSop, setSelectedSop] = useState<SOPItem | null>(null);
   const [showBuilder, setShowBuilder] = useState(false);
+  const [editingSop, setEditingSop] = useState<SOPItem | null>(null);
   const [formData, setFormData] = useState({
     title: '',
     department: 'Development',
@@ -44,7 +45,47 @@ export default function SOPLibraryPage() {
     fetchSops();
   }, []);
 
-  const handleCreateSop = async (e: React.FormEvent) => {
+  const openCreateSopModal = () => {
+    setEditingSop(null);
+    setFormData({
+      title: '',
+      department: 'Development',
+      service: '',
+      purpose: '',
+      instructions: '',
+      checklistText: '1. Step One\n2. Step Two\n3. Step Three\n4. Final Quality QA',
+      requiredProof: 'Live deployment URL + PR Link',
+      expectedDurationHours: 15,
+      responsibleRole: 'EMPLOYEE',
+    });
+    setShowBuilder(true);
+  };
+
+  const openEditSopModal = (sop: SOPItem) => {
+    setEditingSop(sop);
+    let checkText = '';
+    try {
+      const parsed = JSON.parse(sop.checklistJson || '[]');
+      checkText = parsed.join('\n');
+    } catch {
+      checkText = sop.checklistJson || '';
+    }
+
+    setFormData({
+      title: sop.title || '',
+      department: sop.department || 'Development',
+      service: sop.service || '',
+      purpose: sop.purpose || '',
+      instructions: sop.instructions || '',
+      checklistText: checkText || '1. Step One\n2. Step Two\n3. Step Three',
+      requiredProof: sop.requiredProof || 'Live deployment URL + PR Link',
+      expectedDurationHours: sop.expectedDurationHours || 15,
+      responsibleRole: sop.responsibleRole || 'EMPLOYEE',
+    });
+    setShowBuilder(true);
+  };
+
+  const handleSaveSop = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.title || !formData.purpose) return;
 
@@ -54,31 +95,36 @@ export default function SOPLibraryPage() {
       .filter(Boolean);
 
     try {
+      const isEdit = !!editingSop;
+      const method = isEdit ? 'PATCH' : 'POST';
+      const bodyPayload = isEdit
+        ? { id: editingSop.id, ...formData, checklistJson: JSON.stringify(checklist) }
+        : { ...formData, checklistJson: JSON.stringify(checklist) };
+
       const res = await fetch('/api/sop', {
-        method: 'POST',
+        method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...formData,
-          checklistJson: JSON.stringify(checklist),
-        }),
+        body: JSON.stringify(bodyPayload),
       });
+
       if (res.ok) {
         setShowBuilder(false);
-        setFormData({
-          title: '',
-          department: 'Development',
-          service: '',
-          purpose: '',
-          instructions: '',
-          checklistText: '1. Step One\n2. Step Two\n3. Step Three\n4. Final Quality QA',
-          requiredProof: 'Live deployment URL + PR Link',
-          expectedDurationHours: 15,
-          responsibleRole: 'EMPLOYEE',
-        });
+        setEditingSop(null);
         fetchSops();
       }
     } catch (e) {
       console.error(e);
+    }
+  };
+
+  const handleDeleteSop = async (id: string, title: string) => {
+    if (!confirm(`Are you sure you want to delete SOP "${title}"?`)) return;
+
+    setSops((prev) => prev.filter((s) => s.id !== id));
+    try {
+      await fetch(`/api/sop?id=${encodeURIComponent(id)}`, { method: 'DELETE' });
+    } catch (e) {
+      console.error('Error deleting SOP:', e);
     }
   };
 
@@ -106,7 +152,7 @@ export default function SOPLibraryPage() {
           </div>
 
           <button
-            onClick={() => setShowBuilder(true)}
+            onClick={openCreateSopModal}
             className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-xs transition-colors cursor-pointer"
           >
             <Plus className="w-4 h-4" />
@@ -206,13 +252,29 @@ export default function SOPLibraryPage() {
                     <span>Est: <strong>{sop.expectedDurationHours}h</strong></span>
                   </div>
 
-                  <button
-                    onClick={() => setSelectedSop(sop)}
-                    className="text-xs font-bold text-blue-600 hover:text-blue-800 flex items-center gap-0.5 cursor-pointer"
-                  >
-                    <span>View Full SOP</span>
-                    <ChevronRight className="w-3.5 h-3.5" />
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => openEditSopModal(sop)}
+                      className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors cursor-pointer"
+                      title="Edit SOP"
+                    >
+                      <Edit className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      onClick={() => handleDeleteSop(sop.id, sop.title)}
+                      className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                      title="Delete SOP"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      onClick={() => setSelectedSop(sop)}
+                      className="text-xs font-bold text-blue-600 hover:text-blue-800 flex items-center gap-0.5 cursor-pointer pl-1"
+                    >
+                      <span>View Full SOP</span>
+                      <ChevronRight className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 </div>
               </div>
             );
@@ -283,13 +345,21 @@ export default function SOPLibraryPage() {
           <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4 z-50">
             <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 max-h-[90vh] overflow-y-auto">
               <div className="flex items-center justify-between pb-4 border-b border-slate-100 mb-4">
-                <h3 className="text-base font-bold text-slate-900">Create SOP Template</h3>
-                <button onClick={() => setShowBuilder(false)} className="text-slate-400 hover:text-slate-600 cursor-pointer">
+                <h3 className="text-base font-bold text-slate-900">
+                  {editingSop ? 'Edit SOP Template' : 'Create SOP Template'}
+                </h3>
+                <button
+                  onClick={() => {
+                    setShowBuilder(false);
+                    setEditingSop(null);
+                  }}
+                  className="text-slate-400 hover:text-slate-600 cursor-pointer"
+                >
                   <X className="w-5 h-5" />
                 </button>
               </div>
 
-              <form onSubmit={handleCreateSop} className="space-y-3 text-xs">
+              <form onSubmit={handleSaveSop} className="space-y-3 text-xs">
                 <div>
                   <label className="font-semibold text-slate-700 block mb-1">SOP Title *</label>
                   <input
@@ -365,7 +435,10 @@ export default function SOPLibraryPage() {
                 <div className="pt-3 flex justify-end gap-2 border-t border-slate-100">
                   <button
                     type="button"
-                    onClick={() => setShowBuilder(false)}
+                    onClick={() => {
+                      setShowBuilder(false);
+                      setEditingSop(null);
+                    }}
                     className="px-3.5 py-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 cursor-pointer"
                   >
                     Cancel
@@ -374,7 +447,7 @@ export default function SOPLibraryPage() {
                     type="submit"
                     className="px-4 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold shadow-xs cursor-pointer"
                   >
-                    Save SOP
+                    {editingSop ? 'Save SOP Changes' : 'Save SOP'}
                   </button>
                 </div>
               </form>

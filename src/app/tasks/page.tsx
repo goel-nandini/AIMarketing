@@ -16,6 +16,7 @@ import {
   User,
   Shield,
   Trash2,
+  Edit,
   RefreshCw,
   Sparkles,
   ChevronRight,
@@ -43,8 +44,9 @@ export default function TasksPage() {
   const [activeTab, setActiveTab] = useState<'my' | 'team'>('team');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
 
-  // New Task Modal
+  // New / Edit Task Modal
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [customEmailMode, setCustomEmailMode] = useState(false);
   const [newTask, setNewTask] = useState({
@@ -55,6 +57,34 @@ export default function TasksPage() {
     clientId: '',
     dueDate: '',
   });
+
+  const openCreateTaskModal = () => {
+    setEditingTask(null);
+    setNewTask({
+      title: '',
+      description: '',
+      priority: 'MEDIUM',
+      assignedToEmail: 'sharshit.0211@gmail.com',
+      clientId: '',
+      dueDate: '',
+    });
+    setError('');
+    setIsModalOpen(true);
+  };
+
+  const openEditTaskModal = (task: Task) => {
+    setEditingTask(task);
+    setNewTask({
+      title: task.title || '',
+      description: task.description || '',
+      priority: task.priority || 'MEDIUM',
+      assignedToEmail: task.assignedToEmail || '',
+      clientId: task.clientId || '',
+      dueDate: task.dueDate || '',
+    });
+    setError('');
+    setIsModalOpen(true);
+  };
 
   const getAuthHeaders = async (): Promise<Record<string, string>> => {
     const headers: Record<string, string> = {
@@ -184,7 +214,7 @@ export default function TasksPage() {
     return Array.from(map.values());
   }, [teamUsers, invitations]);
 
-  const handleCreateTask = async (e: React.FormEvent) => {
+  const handleSaveTask = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTask.title.trim() || !newTask.assignedToEmail.trim()) {
       setError('Please provide a task title and assignee email.');
@@ -214,8 +244,12 @@ export default function TasksPage() {
       };
 
       const headers = await getAuthHeaders();
-      const res = await fetch('/api/tasks', {
-        method: 'POST',
+      const isEdit = !!editingTask;
+      const url = isEdit ? `/api/tasks/${editingTask.id}` : '/api/tasks';
+      const method = isEdit ? 'PATCH' : 'POST';
+
+      const res = await fetch(url, {
+        method,
         headers,
         body: JSON.stringify(payload),
       });
@@ -226,20 +260,29 @@ export default function TasksPage() {
         data = text ? JSON.parse(text) : {};
       } catch {}
 
-      if (res.ok && data.success) {
-        const createdTaskRecord: Task = data.task || {
-          id: `tsk_${Date.now()}`,
-          ...payload,
-          status: 'TODO',
-          assignedById: effectiveUserId,
-          assignedByName: profile?.name || 'Super Admin',
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        };
+      if (res.ok && (data.success || isEdit)) {
+        if (isEdit) {
+          setTasks((prev) =>
+            prev.map((t) => (t.id === editingTask.id ? { ...t, ...payload } : t))
+          );
+          setSuccessMessage(`Task updated successfully!`);
+        } else {
+          const createdTaskRecord: Task = data.task || {
+            id: `tsk_${Date.now()}`,
+            ...payload,
+            status: 'TODO',
+            assignedById: effectiveUserId,
+            assignedByName: profile?.name || 'Super Admin',
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          };
 
-        setTasks((prev) => [createdTaskRecord, ...prev.filter((t) => t.id !== createdTaskRecord.id)]);
-        setSuccessMessage(`Task assigned successfully to ${payload.assignedToName} (${payload.assignedToEmail})!`);
+          setTasks((prev) => [createdTaskRecord, ...prev.filter((t) => t.id !== createdTaskRecord.id)]);
+          setSuccessMessage(`Task assigned successfully to ${payload.assignedToName} (${payload.assignedToEmail})!`);
+        }
+
         setIsModalOpen(false);
+        setEditingTask(null);
         setActiveTab('team');
         setNewTask({
           title: '',
@@ -251,10 +294,10 @@ export default function TasksPage() {
         });
         fetchTasks();
       } else {
-        setError(data.error || 'Failed to create task.');
+        setError(data.error || `Failed to ${isEdit ? 'update' : 'create'} task.`);
       }
     } catch (err: any) {
-      setError(err.message || 'Error creating task.');
+      setError(err.message || 'Error processing task.');
     } finally {
       setSubmitting(false);
     }
@@ -343,7 +386,7 @@ export default function TasksPage() {
 
               {isSuperOrManager && (
                 <button
-                  onClick={() => setIsModalOpen(true)}
+                  onClick={openCreateTaskModal}
                   className="px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-md shadow-blue-600/20 flex items-center gap-2 transition-all cursor-pointer btn-press"
                 >
                   <Plus className="w-4 h-4" />
@@ -564,13 +607,22 @@ export default function TasksPage() {
                         </select>
 
                         {isSuperOrManager && (
-                          <button
-                            onClick={() => handleDeleteTask(task.id)}
-                            className="p-2 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer btn-press"
-                            title="Delete Task"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                          <>
+                            <button
+                              onClick={() => openEditTaskModal(task)}
+                              className="p-2 rounded-xl text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors cursor-pointer btn-press"
+                              title="Edit Task"
+                            >
+                              <Edit className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteTask(task.id)}
+                              className="p-2 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer btn-press"
+                              title="Delete Task"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </>
                         )}
                       </div>
                     </div>
@@ -581,7 +633,7 @@ export default function TasksPage() {
           </div>
         </div>
 
-        {/* Modal: Assign Task to Member */}
+        {/* Modal: Assign / Edit Task */}
         {isModalOpen && (
           <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 overflow-y-auto animate-fade-in">
             <div className="bg-white rounded-2xl max-w-lg w-full p-6 md:p-8 border border-slate-200 shadow-2xl space-y-5 my-8 card-lift">
@@ -591,19 +643,26 @@ export default function TasksPage() {
                     <CheckSquare className="w-4 h-4" />
                   </div>
                   <div>
-                    <h2 className="text-base font-extrabold text-slate-900">Assign Task to Team Member</h2>
-                    <p className="text-xs text-slate-500">Task will immediately appear on the member's dashboard</p>
+                    <h2 className="text-base font-extrabold text-slate-900">
+                      {editingTask ? 'Edit Workspace Task' : 'Assign Task to Team Member'}
+                    </h2>
+                    <p className="text-xs text-slate-500">
+                      {editingTask ? 'Update task deliverables, priority, or deadline' : 'Task will immediately appear on the member\'s dashboard'}
+                    </p>
                   </div>
                 </div>
                 <button
-                  onClick={() => setIsModalOpen(false)}
+                  onClick={() => {
+                    setIsModalOpen(false);
+                    setEditingTask(null);
+                  }}
                   className="text-slate-400 hover:text-slate-700 p-1 rounded-lg cursor-pointer btn-press"
                 >
                   <X className="w-4 h-4" />
                 </button>
               </div>
 
-              <form onSubmit={handleCreateTask} className="space-y-4">
+              <form onSubmit={handleSaveTask} className="space-y-4">
                 <div>
                   <div className="flex items-center justify-between mb-1">
                     <label className="text-xs font-bold text-slate-700 block">
@@ -736,12 +795,12 @@ export default function TasksPage() {
                     {submitting ? (
                       <>
                         <RefreshCw className="w-4 h-4 animate-spin" />
-                        <span>Assigning...</span>
+                        <span>{editingTask ? 'Saving...' : 'Assigning...'}</span>
                       </>
                     ) : (
                       <>
                         <Send className="w-4 h-4" />
-                        <span>Assign Task</span>
+                        <span>{editingTask ? 'Save Task Changes' : 'Assign Task'}</span>
                       </>
                     )}
                   </button>

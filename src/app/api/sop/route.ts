@@ -116,3 +116,69 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
+
+export async function PATCH(req: Request) {
+  try {
+    await ensureSeedData();
+    const body = await req.json();
+    const {
+      id,
+      title,
+      department,
+      service,
+      purpose,
+      instructions,
+      checklistJson,
+      requiredProof,
+      expectedDurationHours,
+      responsibleRole,
+      active,
+    } = body;
+
+    if (!id) {
+      return NextResponse.json({ error: 'SOP id is required.' }, { status: 400 });
+    }
+
+    const updated = await prisma.sOP.update({
+      where: { id },
+      data: {
+        ...(title ? { title: title.trim() } : {}),
+        ...(department ? { department } : {}),
+        ...(service ? { service: service.trim() } : {}),
+        ...(purpose ? { purpose: purpose.trim() } : {}),
+        ...(instructions ? { instructions: instructions.trim() } : {}),
+        ...(checklistJson ? { checklistJson: typeof checklistJson === 'string' ? checklistJson : JSON.stringify(checklistJson) } : {}),
+        ...(requiredProof !== undefined ? { requiredProof: requiredProof?.trim() || null } : {}),
+        ...(expectedDurationHours !== undefined ? { expectedDurationHours: Number(expectedDurationHours) } : {}),
+        ...(responsibleRole ? { responsibleRole } : {}),
+        ...(active !== undefined ? { active: Boolean(active) } : {}),
+      },
+    });
+
+    return NextResponse.json(updated);
+  } catch (error: any) {
+    console.error('[SOP PATCH Error]:', error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
+
+export async function DELETE(req: Request) {
+  try {
+    await ensureSeedData();
+    const url = new URL(req.url);
+    const id = url.searchParams.get('id');
+
+    if (!id) {
+      return NextResponse.json({ error: 'SOP id is required.' }, { status: 400 });
+    }
+
+    await prisma.sOP.delete({
+      where: { id },
+    });
+
+    return NextResponse.json({ success: true, message: 'SOP deleted successfully.' });
+  } catch (error: any) {
+    console.error('[SOP DELETE Error]:', error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
