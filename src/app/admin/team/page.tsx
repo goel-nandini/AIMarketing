@@ -223,6 +223,41 @@ export default function AdminTeamPage() {
     }
   };
 
+  const handleDeleteUser = async (targetUser: UserProfile) => {
+    if (targetUser.email === 'aman@codekap.com' || targetUser.uid === 'usr_aman') {
+      alert('Security Protection: The Super Admin / Owner account cannot be removed.');
+      return;
+    }
+
+    if (!confirm(`Are you sure you want to remove ${targetUser.name || targetUser.email} from the workspace? This will revoke their access immediately.`)) {
+      return;
+    }
+
+    setError('');
+    setSuccessMessage('');
+
+    // Optimistic UI update
+    setUsers((prev) => prev.filter((u) => u.uid !== targetUser.uid && u.email !== targetUser.email));
+    setSuccessMessage(`Team member ${targetUser.name || targetUser.email} removed successfully.`);
+
+    try {
+      const headers = await getAuthHeaders(true);
+      const res = await fetch(`/api/admin/users/${encodeURIComponent(targetUser.uid || targetUser.email)}`, {
+        method: 'DELETE',
+        headers,
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(data.error || 'Failed to remove user from database.');
+        fetchData();
+      }
+    } catch (err: any) {
+      setError(err.message || 'Error removing team member.');
+      fetchData();
+    }
+  };
+
   const handleRevokeInvite = async (invitationId: string) => {
     if (!confirm('Are you sure you want to revoke this invite passcode?')) return;
 
@@ -598,17 +633,30 @@ export default function AdminTeamPage() {
                           </span>
                         </td>
                         <td className="py-4 px-4 text-right">
-                          {!isSuper && (
-                            <button
-                              onClick={() => {
-                                setSelectedUserForRole(u);
-                                setNewRole(u.role);
-                              }}
-                              className="px-2.5 py-1 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50 text-[11px] font-semibold"
-                            >
-                              Edit Role
-                            </button>
-                          )}
+                          <div className="inline-flex items-center gap-2 justify-end">
+                            {!isSuper && (
+                              <button
+                                onClick={() => {
+                                  setSelectedUserForRole(u);
+                                  setNewRole(u.role);
+                                }}
+                                className="px-2.5 py-1 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50 text-[11px] font-semibold transition-colors cursor-pointer btn-press"
+                              >
+                                Edit Role
+                              </button>
+                            )}
+
+                            {u.email !== 'aman@codekap.com' && u.uid !== 'usr_aman' && (
+                              <button
+                                onClick={() => handleDeleteUser(u)}
+                                className="px-2.5 py-1 rounded-lg border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-600 text-[11px] font-bold transition-all flex items-center gap-1 cursor-pointer btn-press"
+                                title="Remove team member from workspace"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                                <span>Remove</span>
+                              </button>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     );
