@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { verifyServerAuth } from '../../../lib/auth/server-auth';
+import { prisma } from '../../../lib/prisma';
 import {
   getUserProfile,
   saveUserProfile,
@@ -9,6 +10,9 @@ import {
   validateUsernameFormat,
   recordAuditLog,
 } from '../../../lib/firebase/firestore-service';
+
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
 
 export async function GET(req: Request) {
   try {
@@ -31,7 +35,7 @@ export async function PATCH(req: Request) {
     }
 
     const currentProfile = authResult.user;
-    const body = await req.json();
+    const body = await req.json().catch(() => ({}));
     const { name, avatar, username, title } = body;
 
     const updatedProfile = { ...currentProfile };
@@ -40,16 +44,16 @@ export async function PATCH(req: Request) {
       updatedProfile.name = name.trim();
     }
 
-    if (avatar && avatar.trim()) {
+    if (avatar !== undefined) {
       updatedProfile.avatar = avatar.trim();
     }
 
-    if (title && title.trim()) {
+    if (title !== undefined) {
       updatedProfile.title = title.trim();
     }
 
     // Handle Username Update
-    if (username && username.trim().toLowerCase() !== currentProfile.username.toLowerCase()) {
+    if (username && username.trim().toLowerCase() !== (currentProfile.username || '').toLowerCase()) {
       const newUsername = username.trim().toLowerCase();
       const validation = validateUsernameFormat(newUsername);
       if (!validation.valid) {
@@ -81,8 +85,33 @@ export async function PATCH(req: Request) {
     updatedProfile.updatedAt = new Date().toISOString();
     await saveUserProfile(updatedProfile);
 
+    // Sync with Prisma SQLite User Table
+    try {
+      if (currentProfile.email) {
+        await prisma.user.upsert({
+          where: { email: currentProfile.email },
+          create: {
+            id: currentProfile.uid,
+            name: updatedProfile.name,
+            email: currentProfile.email,
+            role: currentProfile.role || 'ADMIN',
+            avatar: updatedProfile.avatar || '',
+            title: updatedProfile.title || '',
+          },
+          update: {
+            name: updatedProfile.name,
+            avatar: updatedProfile.avatar || '',
+            title: updatedProfile.title || '',
+          },
+        });
+      }
+    } catch (dbErr) {
+      console.warn('[Prisma Profile Sync notice]:', dbErr);
+    }
+
     return NextResponse.json(updatedProfile);
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error('[Profile Update Error]:', error);
+    return NextResponse.json({ error: error.message || 'Failed to update profile.' }, { status: 500 });
   }
 }
