@@ -55,49 +55,53 @@ export async function verifyServerAuth(req: Request): Promise<AuthVerificationRe
   const lookupUid = decodedUid || devUserId || 'usr_aman';
   const lookupEmail = decodedEmail || (lookupUid.includes('@') ? lookupUid : null);
 
-  // 1. Try to fetch from Firestore
   let userProfile: UserProfile | null = null;
-  if (lookupUid) {
-    try {
-      userProfile = await getUserProfile(lookupUid);
-    } catch {}
-  }
-  if (!userProfile && lookupEmail) {
-    try {
-      userProfile = await getUserProfileByEmail(lookupEmail);
-    } catch {}
+
+  // 1. Fetch from Prisma SQLite Database first (Persistent Single Source of Truth)
+  try {
+    const { prisma } = await import('@/lib/prisma');
+    const conditions: any[] = [{ id: lookupUid }];
+    if (lookupEmail) conditions.push({ email: lookupEmail });
+    if (lookupUid.includes('@')) conditions.push({ email: lookupUid });
+    if (lookupUid === 'usr_aman') conditions.push({ email: 'aman@codekap.com' });
+
+    const dbUser = await prisma.user.findFirst({
+      where: {
+        OR: conditions,
+      },
+    });
+
+    if (dbUser) {
+      userProfile = {
+        uid: dbUser.id,
+        name: dbUser.name,
+        email: dbUser.email,
+        username: dbUser.email.split('@')[0],
+        role: (dbUser.role === 'ADMIN' ? 'ADMIN' : dbUser.role === 'MANAGER' ? 'MANAGER' : 'TEAM_MEMBER') as UserRole,
+        status: 'ACTIVE',
+        emailVerified: true,
+        createdAt: dbUser.createdAt.toISOString(),
+        updatedAt: dbUser.updatedAt.toISOString(),
+        avatar: dbUser.avatar,
+        title: dbUser.title,
+      };
+    }
+  } catch (dbErr) {
+    console.warn('[ServerAuth] DB lookup notice:', dbErr);
   }
 
-  // 2. Try to fetch from Prisma DB
+  // 2. Try Firestore lookup if not found in Prisma DB
   if (!userProfile) {
-    try {
-      const { prisma } = await import('@/lib/prisma');
-      const conditions: any[] = [{ id: lookupUid }];
-      if (lookupEmail) conditions.push({ email: lookupEmail });
-      if (lookupUid.includes('@')) conditions.push({ email: lookupUid });
-
-      const dbUser = await prisma.user.findFirst({
-        where: {
-          OR: conditions,
-        },
-      });
-
-      if (dbUser) {
-        userProfile = {
-          uid: dbUser.id,
-          name: dbUser.name,
-          email: dbUser.email,
-          username: dbUser.email.split('@')[0],
-          role: (dbUser.role === 'ADMIN' ? 'ADMIN' : dbUser.role === 'MANAGER' ? 'MANAGER' : 'TEAM_MEMBER') as UserRole,
-          status: 'ACTIVE',
-          emailVerified: true,
-          createdAt: dbUser.createdAt.toISOString(),
-          updatedAt: dbUser.updatedAt.toISOString(),
-          avatar: dbUser.avatar,
-          title: dbUser.title,
-        };
-      }
-    } catch {}
+    if (lookupUid) {
+      try {
+        userProfile = await getUserProfile(lookupUid);
+      } catch {}
+    }
+    if (!userProfile && lookupEmail) {
+      try {
+        userProfile = await getUserProfileByEmail(lookupEmail);
+      } catch {}
+    }
   }
 
   // 3. Fallback for initial admin (Aman Sir / Harshit Singh)

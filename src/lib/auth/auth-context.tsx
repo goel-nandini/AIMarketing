@@ -234,19 +234,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       }
 
-      // Fallback for dev / demo mode accounts
+      // Fallback for dev / demo mode accounts: Fetch persistent DB profile
       const initialAdminEmail = (process.env.NEXT_PUBLIC_INITIAL_ADMIN_EMAIL || 'aman@codekap.com').toLowerCase().trim();
       const isInitialAdmin = lowerInput === initialAdminEmail || lowerInput.includes('aman');
+      const targetUid = isInitialAdmin ? 'usr_aman' : lowerInput.includes('harshit') ? 'usr_harshit' : `usr_${Date.now().toString(36)}`;
 
-      const devProf: UserProfile = {
+      let devProf: UserProfile = {
         ...DEFAULT_DEV_ADMIN,
-        uid: `usr_${Date.now().toString(36)}`,
+        uid: targetUid,
         name: lowerInput.includes('harshit') ? 'Harshit Singh' : (lowerInput.split('@')[0] || 'Aman Sir'),
         email: emailToUse.includes('@') ? emailToUse : `${lowerInput}@codekap.com`,
         username: lowerInput.split('@')[0].replace(/[^a-zA-Z0-9_]/g, '') || 'user',
         role: isInitialAdmin ? 'ADMIN' : 'TEAM_MEMBER',
         emailVerified: true,
       };
+
+      // Retrieve actual database record to load custom avatar and custom name
+      try {
+        const profRes = await fetch('/api/profile', {
+          headers: {
+            'X-User-Id': targetUid,
+            'X-User-Email': devProf.email,
+            'X-User-Role': devProf.role,
+          },
+        });
+        if (profRes.ok) {
+          const dbData = await profRes.json();
+          if (dbData && !dbData.error && dbData.name) {
+            devProf = { ...devProf, ...dbData };
+          }
+        }
+      } catch {}
 
       setProfile(devProf);
       try {
@@ -460,26 +478,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     } catch {}
 
+    // Synchronously fetch persisted profile from DB to guarantee custom photo on fresh login
+    try {
+      const res = await fetch('/api/profile', {
+        headers: { 'X-User-Id': 'usr_aman', 'X-User-Role': 'ADMIN' },
+      });
+      if (res.ok) {
+        const dbProf = await res.json();
+        if (dbProf && !dbProf.error && dbProf.name) {
+          superAdminProfile = { ...superAdminProfile, ...dbProf };
+        }
+      }
+    } catch {}
+
     setProfile(superAdminProfile);
     try {
       localStorage.setItem('agent_ai_user_session', JSON.stringify(superAdminProfile));
-    } catch {}
-
-    // Async sync with database
-    try {
-      fetch('/api/profile', {
-        headers: { 'X-User-Id': 'usr_aman', 'X-User-Role': 'ADMIN' },
-      })
-        .then((r) => r.json())
-        .then((dbProf) => {
-          if (dbProf && !dbProf.error && dbProf.name) {
-            setProfile(dbProf);
-            try {
-              localStorage.setItem('agent_ai_user_session', JSON.stringify(dbProf));
-            } catch {}
-          }
-        })
-        .catch(() => {});
     } catch {}
 
     return { success: true };
