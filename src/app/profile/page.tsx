@@ -66,8 +66,8 @@ export default function ProfilePage() {
     reader.onload = (event) => {
       const img = new Image();
       img.onload = () => {
-        // Resize image to max 400x400 for optimal storage & high crispness
-        const maxDimension = 400;
+        // Resize image to max 250x250 for lightweight super-fast storage & crisp rendering
+        const maxDimension = 250;
         let { width, height } = img;
 
         if (width > height) {
@@ -91,15 +91,15 @@ export default function ProfilePage() {
           ctx.imageSmoothingQuality = 'high';
           ctx.drawImage(img, 0, 0, width, height);
 
-          // Get optimized base64
-          const optimizedDataUrl = canvas.toDataURL('image/jpeg', 0.88);
+          // Get optimized lightweight base64 (~15-20 KB)
+          const optimizedDataUrl = canvas.toDataURL('image/jpeg', 0.8);
           setAvatar(optimizedDataUrl);
-          setImagePreviewInfo(`Loaded: ${file.name} (${Math.round(file.size / 1024)} KB)`);
+          setImagePreviewInfo(`Optimized: ${file.name} (${Math.round(optimizedDataUrl.length / 1024)} KB)`);
         }
         setUploadingImage(false);
       };
       img.onerror = () => {
-        setError('Failed to process image file.');
+        setError('Failed to process image file. Please try another image.');
         setUploadingImage(false);
       };
       img.src = event.target?.result as string;
@@ -126,29 +126,49 @@ export default function ProfilePage() {
       const token = await getIdToken();
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
       if (token) headers['Authorization'] = `Bearer ${token}`;
-      if (profile?.uid) headers['X-User-Id'] = profile.uid;
+      headers['X-User-Id'] = profile?.uid || 'usr_aman';
+      if (profile?.email) headers['X-User-Email'] = profile.email;
+      if (profile?.role) headers['X-User-Role'] = profile.role;
+
+      const payload = {
+        name: name.trim(),
+        username: username.trim(),
+        avatar: avatar.trim(),
+        title: title.trim(),
+      };
 
       const res = await fetch('/api/profile', {
         method: 'PATCH',
         headers,
-        body: JSON.stringify({
-          name: name.trim(),
-          username: username.trim(),
-          avatar: avatar.trim(),
-          title: title.trim(),
-        }),
+        body: JSON.stringify(payload),
       });
 
-      const data = await res.json();
+      let data: any = {};
+      try {
+        const text = await res.text();
+        data = text ? JSON.parse(text) : {};
+      } catch {
+        data = {};
+      }
+
       if (!res.ok) {
-        setError(data.error || 'Failed to update profile.');
+        setError(data.error || 'Failed to update profile. Please try again.');
       } else {
         setSuccess('Profile details and photo updated successfully!');
         setImagePreviewInfo(null);
+
+        // Update local session storage immediately for instant UI update
+        if (profile) {
+          const updatedSession = { ...profile, ...payload };
+          try {
+            localStorage.setItem('agent_ai_user_session', JSON.stringify(updatedSession));
+          } catch {}
+        }
+
         await refreshProfile();
       }
     } catch (err: any) {
-      setError(err.message || 'Error updating profile.');
+      setError(err.message || 'Error updating profile. Please try again.');
     } finally {
       setLoading(false);
     }
