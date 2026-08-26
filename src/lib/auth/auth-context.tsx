@@ -434,7 +434,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       };
     }
 
-    const superAdminProfile: UserProfile = {
+    let superAdminProfile: UserProfile = {
       uid: 'usr_aman',
       name: 'Aman Sir',
       email: 'aman@codekap.com',
@@ -449,17 +449,66 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       title: 'Super Admin / Founder & CEO',
     };
 
+    // Check cached session for custom name or custom uploaded avatar
+    try {
+      const cached = localStorage.getItem('agent_ai_user_session');
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (parsed.email === 'aman@codekap.com' || parsed.uid === 'usr_aman') {
+          superAdminProfile = { ...superAdminProfile, ...parsed };
+        }
+      }
+    } catch {}
+
     setProfile(superAdminProfile);
     try {
       localStorage.setItem('agent_ai_user_session', JSON.stringify(superAdminProfile));
+    } catch {}
+
+    // Async sync with database
+    try {
+      fetch('/api/profile', {
+        headers: { 'X-User-Id': 'usr_aman', 'X-User-Role': 'ADMIN' },
+      })
+        .then((r) => r.json())
+        .then((dbProf) => {
+          if (dbProf && !dbProf.error && dbProf.name) {
+            setProfile(dbProf);
+            try {
+              localStorage.setItem('agent_ai_user_session', JSON.stringify(dbProf));
+            } catch {}
+          }
+        })
+        .catch(() => {});
     } catch {}
 
     return { success: true };
   };
 
   const refreshProfile = async () => {
-    if (clientAuth.currentUser) {
-      await fetchProfile(clientAuth.currentUser);
+    try {
+      if (clientAuth.currentUser) {
+        await fetchProfile(clientAuth.currentUser);
+      } else if (profile) {
+        const token = await getIdToken();
+        const headers: Record<string, string> = {};
+        if (token) headers['Authorization'] = `Bearer ${token}`;
+        if (profile.uid) headers['X-User-Id'] = profile.uid;
+        if (profile.role) headers['X-User-Role'] = profile.role;
+
+        const res = await fetch('/api/profile', { headers });
+        if (res.ok) {
+          const updated = await res.json();
+          if (updated && !updated.error && updated.name) {
+            setProfile(updated);
+            try {
+              localStorage.setItem('agent_ai_user_session', JSON.stringify(updated));
+            } catch {}
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('[refreshProfile notice]:', e);
     }
   };
 

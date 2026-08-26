@@ -361,24 +361,28 @@ export async function ensureSeedData() {
       tablesEnsured = true;
     }
 
-    // 1. Ensure Super Admin (Aman Sir - Sole Super Admin)
-    await prisma.user.upsert({
-      where: { email: 'aman@codekap.com' },
-      update: {
-        name: 'Aman Sir',
-        role: 'ADMIN',
-        title: 'Super Admin / Founder & CEO',
-        avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
-      },
-      create: {
-        id: 'usr_aman',
-        name: 'Aman Sir',
-        email: 'aman@codekap.com',
-        role: 'ADMIN',
-        title: 'Super Admin / Founder & CEO',
-        avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+    // 1. Ensure Super Admin (Aman Sir - Sole Super Admin) only if not existing
+    const existingAman = await prisma.user.findFirst({
+      where: {
+        OR: [
+          { email: 'aman@codekap.com' },
+          { id: 'usr_aman' }
+        ]
       },
     });
+
+    if (!existingAman) {
+      await prisma.user.create({
+        data: {
+          id: 'usr_aman',
+          name: 'Aman Sir',
+          email: 'aman@codekap.com',
+          role: 'ADMIN',
+          title: 'Super Admin / Founder & CEO',
+          avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+        },
+      });
+    }
 
     // 2. Ensure Active Super Admin Passcode (AGENT-7788)
     const existingInvite = await prisma.invitation.findFirst({
