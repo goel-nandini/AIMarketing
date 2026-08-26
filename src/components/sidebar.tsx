@@ -28,6 +28,8 @@ import {
   PieChart,
   Bell,
   ChevronDown,
+  Clock,
+  Activity,
 } from 'lucide-react';
 
 interface NavItem {
@@ -64,6 +66,7 @@ export function Sidebar() {
       icon: LayoutDashboard,
       items: [
         { name: 'Owner Dashboard', href: '/dashboard', icon: LayoutDashboard },
+        { name: 'Screen Time & Activity', href: '/analytics/screen-time', icon: Clock, badge: 'Live' },
         { name: 'Notifications', href: '/notifications', icon: Bell },
         { name: 'Audit / Activity Log', href: '/audit-log', icon: FileText },
       ],

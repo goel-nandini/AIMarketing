@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import { AuthProvider } from '../lib/auth/auth-context';
+import { ScreenTimeTrackerProvider } from '../components/screen-time-tracker';
 
 export const metadata: Metadata = {
   title: 'Agent AI — Internal AI Marketing Automation Platform',
@@ -21,7 +22,9 @@ export default function RootLayout({
       </head>
       <body className="bg-slate-50 text-slate-900 antialiased min-h-screen" suppressHydrationWarning>
         <AuthProvider>
-          {children}
+          <ScreenTimeTrackerProvider>
+            {children}
+          </ScreenTimeTrackerProvider>
         </AuthProvider>
       </body>
     </html>

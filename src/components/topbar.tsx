@@ -5,14 +5,17 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Search, Bell, Plus, Shield, CheckCircle, Clock } from 'lucide-react';
 import { useAuth } from '@/lib/auth/auth-context';
+import { useScreenTime } from '@/components/screen-time-tracker';
 
 export function Topbar() {
   const router = useRouter();
   const { profile } = useAuth();
+  const { formattedTodayTime, isTabActive } = useScreenTime();
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearchOpen, setIsSearchOpen] = useState(false);
 
   const quickSearchItems = [
+    { title: 'Screen Time & Work Activity', category: 'Analytics', href: '/analytics/screen-time' },
     { title: 'Jeevansphere Client Profile', category: 'Client', href: '/clients' },
     { title: 'Website Development SOP', category: 'SOP', href: '/sop' },
     { title: 'Performance Marketing Campaign', category: 'Marketing', href: '/workspaces/marketing' },
@@ -69,6 +72,17 @@ export function Topbar() {
 
       {/* Right Controls */}
       <div className="flex items-center gap-3">
+        {/* Live Screen Time Badge */}
+        <Link
+          href="/analytics/screen-time"
+          className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-mono font-bold transition-all duration-200 btn-press shadow-xs group"
+          title="Click to view Workspace Screen Time & Activity Analytics"
+        >
+          <span className={`w-2 h-2 rounded-full ${isTabActive ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'}`} />
+          <Clock className="w-3.5 h-3.5 text-slate-400 group-hover:text-white transition-colors" />
+          <span>{formattedTodayTime}</span>
+        </Link>
+
         {/* System Status Pill */}
         <div className="hidden md:flex items-center gap-2 px-2.5 py-1 bg-emerald-50 border border-emerald-200/80 rounded-full text-[11px] font-semibold text-emerald-700 transition-colors duration-200">
           <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
