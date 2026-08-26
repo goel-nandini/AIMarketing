@@ -497,3 +497,186 @@ export interface WorkLogItem {
   date?: string;
   [key: string]: any;
 }
+
+// ==========================================
+// KAIRO SOCIAL MODULE TYPES
+// ==========================================
+export type SocialPlatform = 'INSTAGRAM' | 'FACEBOOK';
+export type SocialPostStatus = 'DRAFT' | 'READY' | 'SCHEDULED' | 'PUBLISHING' | 'PUBLISHED' | 'FAILED';
+export type SocialConnectionHealth = 'HEALTHY' | 'WARNING' | 'EXPIRED' | 'DISCONNECTED';
+
+export interface SocialAccountItem {
+  id: string;
+  clientId: string;
+  platform: SocialPlatform;
+  accountType: string;
+  accountId: string;
+  username: string;
+  pageName?: string | null;
+  profilePictureUrl?: string | null;
+  tokenExpiresAt?: string | null;
+  isConnected: boolean;
+  connectionHealth: SocialConnectionHealth;
+  healthMessage?: string | null;
+  connectedById?: string | null;
+  connectedByName?: string | null;
+  lastSyncAt: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SocialMediaItem {
+  url: string;
+  type: 'image' | 'video';
+  name?: string;
+  size?: number;
+  thumbnailUrl?: string;
+  aspectRatio?: string;
+}
+
+export interface SocialMusicItem {
+  id?: string;
+  title: string;
+  artist: string;
+  genre?: string;
+  previewUrl?: string;
+  duration?: string;
+  isInstagramAudioWarning?: boolean;
+}
+
+export interface SocialPostItem {
+  id: string;
+  clientId: string;
+  clientName?: string;
+  createdById: string;
+  createdByName: string;
+  createdByEmail?: string | null;
+  platforms: SocialPlatform[];
+  caption: string;
+  hashtags: string[];
+  location?: string | null;
+  locationDetails?: {
+    name: string;
+    city?: string;
+    province?: string;
+    country?: string;
+    placeId?: string;
+  } | null;
+  media: SocialMediaItem[];
+  music?: SocialMusicItem | null;
+  status: SocialPostStatus;
+  scheduledAt?: string | null;
+  publishedAt?: string | null;
+  failureReason?: string | null;
+  lastEditedById?: string | null;
+  lastEditedByName?: string | null;
+  lastEditedAt?: string | null;
+  isLocked?: boolean;
+  createdAt: string;
+  updatedAt: string;
+  attempts?: SocialPublishAttemptItem[];
+}
+
+export interface SocialPublishAttemptItem {
+  id: string;
+  postId: string;
+  platform: SocialPlatform;
+  attemptNumber: number;
+  status: 'SUCCESS' | 'FAILED' | 'RETRY';
+  responsePayload?: string | null;
+  errorMessage?: string | null;
+  platformPostId?: string | null;
+  platformPostUrl?: string | null;
+  attemptedAt: string;
+}
+
+export interface SocialActivityLogItem {
+  id: string;
+  clientId: string;
+  postId?: string | null;
+  action: string;
+  userId: string;
+  userName: string;
+  details?: string | null;
+  platform?: string | null;
+  timestamp: string;
+}
+
+export interface SocialClientConfigItem {
+  id: string;
+  clientId: string;
+  defaultLocation: string;
+  defaultTimezone: string;
+  brandTone: string;
+  defaultHashtags: string[];
+  autoHashtags: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// ==========================================
+// KAIRO CHAT MODULE TYPES
+// ==========================================
+export type ConversationType = 'DIRECT' | 'GROUP';
+export type ChatMessageType = 'TEXT' | 'IMAGE' | 'FILE';
+export type MemberRole = 'ADMIN' | 'MEMBER';
+
+export interface ConversationMemberItem {
+  id: string;
+  conversationId: string;
+  userId: string;
+  userName: string;
+  userEmail: string;
+  userAvatar?: string | null;
+  role: MemberRole;
+  joinedAt: string;
+}
+
+export interface ChatMessageItem {
+  id: string;
+  conversationId: string;
+  senderId: string;
+  senderName: string;
+  senderEmail?: string | null;
+  senderAvatar?: string | null;
+  content: string;
+  messageType: ChatMessageType;
+  attachmentUrl?: string | null;
+  attachmentName?: string | null;
+  attachmentSize?: number | null;
+  isEdited: boolean;
+  deletedAt?: string | null;
+  isDeleted?: boolean;
+  createdAt: string;
+  updatedAt: string;
+  reads?: MessageReadItem[];
+  isReadByMe?: boolean;
+  isReadByAll?: boolean;
+}
+
+export interface MessageReadItem {
+  id: string;
+  messageId: string;
+  userId: string;
+  readAt: string;
+}
+
+export interface ConversationItem {
+  id: string;
+  clientId?: string | null;
+  clientName?: string | null;
+  clientLogo?: string | null;
+  name: string;
+  type: ConversationType;
+  avatarUrl?: string | null;
+  createdById: string;
+  createdByName: string;
+  lastMessage?: string | null;
+  lastMessageAt?: string | null;
+  unreadCount?: number;
+  members: ConversationMemberItem[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+

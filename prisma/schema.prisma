@@ -93,8 +93,13 @@ model Client {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  campaigns     Campaign[]
-  projects      Project[]
+  campaigns          Campaign[]
+  projects           Project[]
+  socialAccounts     SocialAccount[]
+  socialPosts        SocialPost[]
+  socialActivityLogs SocialActivityLog[]
+  socialConfig       SocialClientConfig?
+  conversations      Conversation[]
 }
 
 model Project {
@@ -462,3 +467,161 @@ model ScreenTimeLog {
 
   @@unique([userId, date])
 }
+
+model SocialAccount {
+  id                String    @id @default(cuid())
+  clientId          String
+  client            Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  platform          String    // INSTAGRAM, FACEBOOK
+  accountType       String    @default("PROFESSIONAL") // PROFESSIONAL, PAGE, BUSINESS
+  accountId         String    // Meta Page ID or IG User ID
+  username          String    // e.g. @auravitalstar
+  pageName          String?   // e.g. Aura Vital Star
+  profilePictureUrl String?
+  encryptedToken    String?   // Server-side securely encrypted access token
+  tokenExpiresAt    DateTime?
+  isConnected       Boolean   @default(true)
+  connectionHealth  String    @default("HEALTHY") // HEALTHY, WARNING, EXPIRED, DISCONNECTED
+  healthMessage     String?
+  connectedById     String?
+  connectedByName   String?
+  lastSyncAt        DateTime  @default(now())
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@unique([clientId, platform, accountId])
+}
+
+model SocialPost {
+  id              String                 @id @default(cuid())
+  clientId        String
+  client          Client                 @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  createdById     String
+  createdByName   String
+  createdByEmail  String?
+  platformsJson   String                 @default("[\"INSTAGRAM\",\"FACEBOOK\"]") // Array of platforms
+  caption         String
+  hashtagsJson    String                 @default("[]") // Array of hashtags
+  location        String?
+  locationJson    String?
+  mediaJson       String                 @default("[]") // [{url, type, name, size, width, height}]
+  musicJson       String?                // {title, artist, previewUrl, isInstagramAudioWarning}
+  status          String                 @default("DRAFT") // DRAFT, READY, SCHEDULED, PUBLISHING, PUBLISHED, FAILED
+  scheduledAt     DateTime?
+  publishedAt     DateTime?
+  failureReason   String?
+  lastEditedById  String?
+  lastEditedByName String?
+  lastEditedAt    DateTime?
+  isLocked        Boolean                @default(false)
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+
+  attempts        SocialPublishAttempt[]
+}
+
+model SocialPublishAttempt {
+  id             String      @id @default(cuid())
+  postId         String
+  post           SocialPost  @relation(fields: [postId], references: [id], onDelete: Cascade)
+  platform       String      // INSTAGRAM, FACEBOOK
+  attemptNumber  Int         @default(1)
+  status         String      // SUCCESS, FAILED, RETRY
+  responsePayload String?
+  errorMessage   String?
+  platformPostId String?
+  platformPostUrl String?
+  attemptedAt    DateTime    @default(now())
+}
+
+model SocialActivityLog {
+  id        String   @id @default(cuid())
+  clientId  String
+  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  postId    String?
+  action    String   // e.g. "Harshit created a post", "Priya scheduled post"
+  userId    String
+  userName  String
+  details   String?
+  platform  String?
+  timestamp DateTime @default(now())
+}
+
+model SocialClientConfig {
+  id                  String   @id @default(cuid())
+  clientId            String   @unique
+  client              Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  defaultLocation     String   @default("Aura Vital Star, Brampton")
+  defaultTimezone     String   @default("Asia/Kolkata")
+  brandTone           String   @default("Inspiring, Engaging, Professional")
+  defaultHashtagsJson String   @default("[]")
+  autoHashtags        Boolean  @default(true)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+}
+
+model Conversation {
+  id            String               @id @default(cuid())
+  clientId      String?
+  client        Client?              @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  clientName    String?
+  name          String
+  type          String               @default("GROUP") // DIRECT, GROUP
+  avatarUrl     String?
+  createdById   String
+  createdByName String
+  lastMessage   String?
+  lastMessageAt DateTime?
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
+
+  members       ConversationMember[]
+  messages      Message[]
+}
+
+model ConversationMember {
+  id             String       @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  userId         String
+  userName       String
+  userEmail      String
+  userAvatar     String?
+  role           String       @default("MEMBER") // ADMIN, MEMBER
+  joinedAt       DateTime     @default(now())
+
+  @@unique([conversationId, userId])
+}
+
+model Message {
+  id             String        @id @default(cuid())
+  conversationId String
+  conversation   Conversation  @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  senderId       String
+  senderName     String
+  senderEmail    String?
+  senderAvatar   String?
+  content        String
+  messageType    String        @default("TEXT") // TEXT, IMAGE, FILE
+  attachmentUrl  String?
+  attachmentName String?
+  attachmentSize Int?
+  isEdited       Boolean       @default(false)
+  deletedAt      DateTime?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  reads          MessageRead[]
+}
+
+model MessageRead {
+  id        String   @id @default(cuid())
+  messageId String
+  message   Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  userId    String
+  readAt    DateTime @default(now())
+
+  @@unique([messageId, userId])
+}
+
+

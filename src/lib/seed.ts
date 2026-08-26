@@ -345,7 +345,154 @@ const SQLITE_INIT_TABLES = [
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" DATETIME NOT NULL
   );`,
-  `CREATE UNIQUE INDEX IF NOT EXISTS "Invitation_passcode_key" ON "Invitation"("passcode");`
+  `CREATE UNIQUE INDEX IF NOT EXISTS "Invitation_passcode_key" ON "Invitation"("passcode");`,
+
+  `CREATE TABLE IF NOT EXISTS "SocialAccount" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "clientId" TEXT NOT NULL,
+    "platform" TEXT NOT NULL,
+    "accountType" TEXT NOT NULL DEFAULT 'PROFESSIONAL',
+    "accountId" TEXT NOT NULL,
+    "username" TEXT NOT NULL,
+    "pageName" TEXT,
+    "profilePictureUrl" TEXT,
+    "encryptedToken" TEXT,
+    "tokenExpiresAt" DATETIME,
+    "isConnected" BOOLEAN NOT NULL DEFAULT 1,
+    "connectionHealth" TEXT NOT NULL DEFAULT 'HEALTHY',
+    "healthMessage" TEXT,
+    "connectedById" TEXT,
+    "connectedByName" TEXT,
+    "lastSyncAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL,
+    FOREIGN KEY ("clientId") REFERENCES "Client" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+  );`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS "SocialAccount_clientId_platform_accountId_key" ON "SocialAccount"("clientId", "platform", "accountId");`,
+
+  `CREATE TABLE IF NOT EXISTS "SocialPost" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "clientId" TEXT NOT NULL,
+    "createdById" TEXT NOT NULL,
+    "createdByName" TEXT NOT NULL,
+    "createdByEmail" TEXT,
+    "platformsJson" TEXT NOT NULL DEFAULT '["INSTAGRAM","FACEBOOK"]',
+    "caption" TEXT NOT NULL,
+    "hashtagsJson" TEXT NOT NULL DEFAULT '[]',
+    "location" TEXT,
+    "locationJson" TEXT,
+    "mediaJson" TEXT NOT NULL DEFAULT '[]',
+    "musicJson" TEXT,
+    "status" TEXT NOT NULL DEFAULT 'DRAFT',
+    "scheduledAt" DATETIME,
+    "publishedAt" DATETIME,
+    "failureReason" TEXT,
+    "lastEditedById" TEXT,
+    "lastEditedByName" TEXT,
+    "lastEditedAt" DATETIME,
+    "isLocked" BOOLEAN NOT NULL DEFAULT 0,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL,
+    FOREIGN KEY ("clientId") REFERENCES "Client" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+  );`,
+
+  `CREATE TABLE IF NOT EXISTS "SocialPublishAttempt" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "postId" TEXT NOT NULL,
+    "platform" TEXT NOT NULL,
+    "attemptNumber" INTEGER NOT NULL DEFAULT 1,
+    "status" TEXT NOT NULL,
+    "responsePayload" TEXT,
+    "errorMessage" TEXT,
+    "platformPostId" TEXT,
+    "platformPostUrl" TEXT,
+    "attemptedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY ("postId") REFERENCES "SocialPost" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+  );`,
+
+  `CREATE TABLE IF NOT EXISTS "SocialActivityLog" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "clientId" TEXT NOT NULL,
+    "postId" TEXT,
+    "action" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "userName" TEXT NOT NULL,
+    "details" TEXT,
+    "platform" TEXT,
+    "timestamp" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY ("clientId") REFERENCES "Client" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+  );`,
+
+  `CREATE TABLE IF NOT EXISTS "SocialClientConfig" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "clientId" TEXT NOT NULL,
+    "defaultLocation" TEXT NOT NULL DEFAULT 'Aura Vital Star, Brampton',
+    "defaultTimezone" TEXT NOT NULL DEFAULT 'Asia/Kolkata',
+    "brandTone" TEXT NOT NULL DEFAULT 'Inspiring, Engaging, Professional',
+    "defaultHashtagsJson" TEXT NOT NULL DEFAULT '[]',
+    "autoHashtags" BOOLEAN NOT NULL DEFAULT 1,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL,
+    FOREIGN KEY ("clientId") REFERENCES "Client" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+  );`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS "SocialClientConfig_clientId_key" ON "SocialClientConfig"("clientId");`,
+
+  `CREATE TABLE IF NOT EXISTS "Conversation" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "clientId" TEXT,
+    "clientName" TEXT,
+    "name" TEXT NOT NULL,
+    "type" TEXT NOT NULL DEFAULT 'GROUP',
+    "avatarUrl" TEXT,
+    "createdById" TEXT NOT NULL,
+    "createdByName" TEXT NOT NULL,
+    "lastMessage" TEXT,
+    "lastMessageAt" DATETIME,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL,
+    FOREIGN KEY ("clientId") REFERENCES "Client" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+  );`,
+
+  `CREATE TABLE IF NOT EXISTS "ConversationMember" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "conversationId" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "userName" TEXT NOT NULL,
+    "userEmail" TEXT NOT NULL,
+    "userAvatar" TEXT,
+    "role" TEXT NOT NULL DEFAULT 'MEMBER',
+    "joinedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY ("conversationId") REFERENCES "Conversation" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+  );`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS "ConversationMember_conversationId_userId_key" ON "ConversationMember"("conversationId", "userId");`,
+
+  `CREATE TABLE IF NOT EXISTS "Message" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "conversationId" TEXT NOT NULL,
+    "senderId" TEXT NOT NULL,
+    "senderName" TEXT NOT NULL,
+    "senderEmail" TEXT,
+    "senderAvatar" TEXT,
+    "content" TEXT NOT NULL,
+    "messageType" TEXT NOT NULL DEFAULT 'TEXT',
+    "attachmentUrl" TEXT,
+    "attachmentName" TEXT,
+    "attachmentSize" INTEGER,
+    "isEdited" BOOLEAN NOT NULL DEFAULT 0,
+    "deletedAt" DATETIME,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL,
+    FOREIGN KEY ("conversationId") REFERENCES "Conversation" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+  );`,
+
+  `CREATE TABLE IF NOT EXISTS "MessageRead" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "messageId" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "readAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY ("messageId") REFERENCES "Message" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+  );`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS "MessageRead_messageId_userId_key" ON "MessageRead"("messageId", "userId");`
 ];
 
 let tablesEnsured = false;
@@ -466,6 +613,162 @@ export async function ensureSeedData() {
         ],
       });
     }
+
+    // 5. Ensure Premier Clients (Aura Vital Star & Jeevansphere) for KAIRO Social
+    const existingAura = await prisma.client.findFirst({
+      where: {
+        OR: [
+          { name: 'Aura Vital Star' },
+          { id: 'cli_auravitalstar_01' }
+        ]
+      }
+    });
+
+    let auraId = existingAura?.id || 'cli_auravitalstar_01';
+
+    if (!existingAura) {
+      const createdAura = await prisma.client.create({
+        data: {
+          id: 'cli_auravitalstar_01',
+          name: 'Aura Vital Star',
+          businessName: 'Aura Vital Star Wellness & Aesthetics',
+          website: 'https://auravitalstar.com',
+          industry: 'Holistic Wellness & Luxury Aesthetic Care',
+          country: 'Canada',
+          province: 'Ontario',
+          city: 'Brampton',
+          contactName: 'Aura Vital Management',
+          contactEmail: 'contact@auravitalstar.com',
+          contactPhone: '+1 (905) 555-0199',
+          clientCode: 'CK-AURA-8821',
+          githubRepo: 'https://github.com/codekap/aura-vital-star',
+          deploymentUrl: 'https://auravitalstar.com',
+          status: 'ACTIVE',
+          description: 'Aura Vital Star provides premium holistic wellness, vitality treatments, restorative therapies, and aesthetic rejuvenation in the Greater Toronto Area.',
+          brandTone: 'Sophisticated, Calming, Inspiring, High-End Wellness',
+          logoUrl: 'https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=150&auto=format&fit=crop&q=80',
+        }
+      });
+      auraId = createdAura.id;
+    }
+
+    // Ensure Aura Vital Star Social Client Config
+    const existingAuraConfig = await prisma.socialClientConfig.findFirst({
+      where: { clientId: auraId }
+    });
+    if (!existingAuraConfig) {
+      await prisma.socialClientConfig.create({
+        data: {
+          clientId: auraId,
+          defaultLocation: 'Aura Vital Star, Brampton',
+          defaultTimezone: 'America/Toronto',
+          brandTone: 'Sophisticated, Calming, Inspiring, High-End Wellness',
+          defaultHashtagsJson: JSON.stringify(['#AuraVitalStar', '#BramptonWellness', '#LuxurySpaBrampton', '#OntarioHealth', '#HolisticVitality']),
+          autoHashtags: true,
+        }
+      });
+    }
+
+    // Ensure Aura Vital Star Social Accounts (Instagram & Facebook)
+    const existingAuraIG = await prisma.socialAccount.findFirst({
+      where: { clientId: auraId, platform: 'INSTAGRAM' }
+    });
+    if (!existingAuraIG) {
+      await prisma.socialAccount.create({
+        data: {
+          clientId: auraId,
+          platform: 'INSTAGRAM',
+          accountType: 'PROFESSIONAL',
+          accountId: 'ig_auravitalstar_991',
+          username: '@auravitalstar',
+          pageName: 'Aura Vital Star Official',
+          profilePictureUrl: 'https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=150&auto=format&fit=crop&q=80',
+          isConnected: true,
+          connectionHealth: 'HEALTHY',
+          healthMessage: 'Meta Graph API v20.0 token active & healthy',
+          connectedById: 'usr_aman',
+          connectedByName: 'Aman Sir',
+          lastSyncAt: new Date(),
+        }
+      });
+    }
+
+    const existingAuraFB = await prisma.socialAccount.findFirst({
+      where: { clientId: auraId, platform: 'FACEBOOK' }
+    });
+    if (!existingAuraFB) {
+      await prisma.socialAccount.create({
+        data: {
+          clientId: auraId,
+          platform: 'FACEBOOK',
+          accountType: 'PAGE',
+          accountId: 'fb_page_auravitalstar_882',
+          username: 'Aura Vital Star',
+          pageName: 'Aura Vital Star Brampton',
+          profilePictureUrl: 'https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=150&auto=format&fit=crop&q=80',
+          isConnected: true,
+          connectionHealth: 'HEALTHY',
+          healthMessage: 'Meta Page Publishing permissions granted',
+          connectedById: 'usr_aman',
+          connectedByName: 'Aman Sir',
+          lastSyncAt: new Date(),
+        }
+      });
+    }
+
+    // Ensure Jeevansphere client and config
+    const existingJeevan = await prisma.client.findFirst({
+      where: {
+        OR: [
+          { name: 'Jeevansphere' },
+          { id: 'cli_jeevansphere_default' }
+        ]
+      }
+    });
+
+    let jeevanId = existingJeevan?.id || 'cli_jeevansphere_default';
+    if (!existingJeevan) {
+      const createdJeevan = await prisma.client.create({
+        data: {
+          id: 'cli_jeevansphere_default',
+          name: 'Jeevansphere',
+          businessName: 'Jeevansphere Eye Care & Healthcare',
+          website: 'http://jeevansphere.com/',
+          industry: 'Eye Care / Healthcare Platform',
+          country: 'India',
+          province: 'Delhi',
+          city: 'Connaught Place, New Delhi',
+          contactName: 'Deepak Yadav',
+          contactEmail: 'jeevansphere@com.in',
+          contactPhone: '9690922001',
+          clientCode: 'CK-JEEV-2001',
+          githubRepo: 'https://github.com/harshito0/AIMarketing',
+          deploymentUrl: 'http://jeevansphere.com/',
+          status: 'ACTIVE',
+          description: 'JeevanSphere connects patients with premier eye surgery, laser vision correction, and specialized healthcare treatments across Delhi NCR.',
+          brandTone: 'Compassionate, Authoritative, High-Converting Medical',
+          logoUrl: 'https://api.dicebear.com/7.x/identicon/svg?seed=Jeevansphere',
+        }
+      });
+      jeevanId = createdJeevan.id;
+    }
+
+    const existingJeevanConfig = await prisma.socialClientConfig.findFirst({
+      where: { clientId: jeevanId }
+    });
+    if (!existingJeevanConfig) {
+      await prisma.socialClientConfig.create({
+        data: {
+          clientId: jeevanId,
+          defaultLocation: 'Jeevansphere Clinic, CP New Delhi',
+          defaultTimezone: 'Asia/Kolkata',
+          brandTone: 'Compassionate, Authoritative, High-Converting Medical',
+          defaultHashtagsJson: JSON.stringify(['#Jeevansphere', '#DelhiEyeCare', '#LasikDelhi', '#ClearVision']),
+          autoHashtags: true,
+        }
+      });
+    }
+
   } catch (err) {
     console.warn('[Seed Data Warning]:', err);
   }

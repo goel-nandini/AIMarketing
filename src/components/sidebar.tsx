@@ -30,6 +30,13 @@ import {
   ChevronDown,
   Clock,
   Activity,
+  Share2,
+  Send,
+  AlertCircle,
+  BarChart3,
+  PlusCircle,
+  Globe,
+  MessageSquare,
 } from 'lucide-react';
 
 interface NavItem {
@@ -66,6 +73,7 @@ export function Sidebar() {
       icon: LayoutDashboard,
       items: [
         { name: 'Owner Dashboard', href: '/dashboard', icon: LayoutDashboard },
+        { name: 'KAIRO Team Chat', href: '/chat', icon: MessageSquare, badge: 'Real-time', highlight: true },
         { name: 'Screen Time & Activity', href: '/analytics/screen-time', icon: Clock, badge: 'Live' },
         { name: 'Notifications', href: '/notifications', icon: Bell },
         { name: 'Audit / Activity Log', href: '/audit-log', icon: FileText },
@@ -104,6 +112,22 @@ export function Sidebar() {
       ],
     },
     {
+      id: 'social',
+      label: 'KAIRO Social',
+      icon: Share2,
+      items: [
+        { name: 'Overview', href: '/social', icon: LayoutDashboard },
+        { name: 'Social Accounts', href: '/social/accounts', icon: Globe },
+        { name: 'Create Post', href: '/social/create', icon: PlusCircle, highlight: true },
+        { name: 'Calendar', href: '/social/calendar', icon: Calendar },
+        { name: 'Drafts', href: '/social/drafts', icon: FileText },
+        { name: 'Scheduled', href: '/social/scheduled', icon: Clock, badge: 'Live' },
+        { name: 'Published', href: '/social/published', icon: Send },
+        { name: 'Failed', href: '/social/failed', icon: AlertCircle },
+        { name: 'Analytics', href: '/social/analytics', icon: BarChart3 },
+      ],
+    },
+    {
       id: 'workspaces',
       label: 'SOPs & Workspaces',
       icon: Sparkles,
@@ -139,6 +163,7 @@ export function Sidebar() {
   // Open/collapsed states with smooth transitions
   const [openGroups, setOpenGroups] = React.useState<Record<string, boolean>>({
     management: true,
+    social: true,
     crm: false,
     team: false,
     projects: false,

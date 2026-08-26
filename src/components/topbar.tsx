@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Search, Bell, Plus, Shield, CheckCircle, Clock } from 'lucide-react';
+import { Search, Bell, Plus, Shield, CheckCircle, Clock, MessageSquare } from 'lucide-react';
 import { useAuth } from '@/lib/auth/auth-context';
 import { useScreenTime } from '@/components/screen-time-tracker';
 
@@ -96,6 +96,15 @@ export function Topbar() {
         >
           <Plus className="w-3.5 h-3.5" />
           <span>New Lead / Project</span>
+        </Link>
+
+        {/* Team Chat Icon */}
+        <Link
+          href="/chat"
+          className="w-8 h-8 rounded-xl border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-blue-50 hover:text-blue-600 transition-all duration-200 relative btn-press shadow-2xs"
+          title="KAIRO Team Chat"
+        >
+          <MessageSquare className="w-4 h-4" />
         </Link>
 
         {/* Notifications Icon */}
